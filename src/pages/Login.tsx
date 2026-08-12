@@ -93,7 +93,7 @@ export default function Login() {
         >
           <div className="block lg:hidden mb-8">
             <div className="flex items-center gap-3 mb-3">
-              <div className="h-9 px-2.5 rounded-lg flex items-center justify-center bg-accent/10">
+              <div className="h-9 px-2.5 rounded-lg flex items-center justify-center bg-accent-subtle border border-gold/30">
                 <span className="text-sm font-display font-bold text-accent tracking-tight">Riyaz EP</span>
               </div>
               <div>
@@ -167,7 +167,7 @@ export default function Login() {
         </motion.div>
       </div>
 
-      <div className="hidden lg:flex flex-1 items-center justify-center bg-[#0D9488] relative overflow-hidden">
+      <div className="hidden lg:flex flex-1 items-center justify-center bg-[#7F1D3A] relative overflow-hidden">
         <div className="absolute inset-0 bg-white/[0.03] rounded-[100%] -translate-y-1/2 w-[600px] h-[600px] top-0 left-1/2 -translate-x-1/2" />
         <div className="absolute inset-0 bg-black/[0.04] rounded-[100%] translate-y-1/3 w-[400px] h-[400px] bottom-0 right-0" />
         <motion.div
@@ -176,8 +176,8 @@ export default function Login() {
           transition={{ duration: 0.4, ease: "easeOut" }}
           className="relative z-10 text-center px-8"
         >
-          <div className="mx-auto mb-6 rounded-xl bg-white/90 px-6 py-5 inline-flex items-center justify-center">
-            <span className="text-2xl font-display font-bold text-[#0D9488] tracking-tight">Riyaz EP</span>
+          <div className="mx-auto mb-6 rounded-xl bg-white/95 px-6 py-5 inline-flex items-center justify-center border border-[#C59D5F]/40">
+            <span className="text-2xl font-display font-bold text-[#7F1D3A] tracking-tight">Riyaz EP</span>
           </div>
           <h2 className="text-2xl font-display font-bold text-white tracking-tight">Riyaz Enterprise</h2>
           <p className="text-sm text-white/70 mt-2 max-w-xs mx-auto leading-relaxed">

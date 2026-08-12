@@ -312,21 +312,21 @@ body {
   font-family: -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
   font-size: 11px; color: #1a1a1a; line-height: 1.5;
 }
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 3px solid #0D9488; padding-bottom: 14px; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 3px solid #7F1D3A; padding-bottom: 14px; }
 .header-left { display: flex; align-items: center; gap: 10px; }
-.header-logo { display: inline-flex; align-items: center; justify-content: center; height: 44px; padding: 0 10px; border-radius: 8px; background: #0D9488; color: #fff; font-size: 12px; font-weight: 800; letter-spacing: 0.02em; }
-.header h1 { font-size: 24px; letter-spacing: 1px; color: #0D9488; font-weight: 800; margin: 0; }
+.header-logo { display: inline-flex; align-items: center; justify-content: center; height: 44px; padding: 0 10px; border-radius: 8px; background: #7F1D3A; color: #fff; font-size: 12px; font-weight: 800; letter-spacing: 0.02em; }
+.header h1 { font-size: 24px; letter-spacing: 1px; color: #7F1D3A; font-weight: 800; margin: 0; }
 .header p { font-size: 11px; color: #666; margin-top: 2px; }
 .header .addr { font-size: 10px; color: #888; margin-top: 1px; }
 .header-right { text-align: right; }
-.header-right .inv-label { font-size: 16px; font-weight: 800; color: #0D9488; letter-spacing: 1px; }
-.header-right .inv-id { font-size: 9px; color: #fff; background: #0D9488; padding: 3px 8px; border-radius: 3px; margin-top: 3px; display: inline-block; }
+.header-right .inv-label { font-size: 16px; font-weight: 800; color: #7F1D3A; letter-spacing: 1px; }
+.header-right .inv-id { font-size: 9px; color: #fff; background: #7F1D3A; padding: 3px 8px; border-radius: 3px; margin-top: 3px; display: inline-block; }
 .info { display: flex; justify-content: space-between; margin-bottom: 14px; background: #f9fafb; padding: 10px 14px; border-radius: 5px; }
 .info div { font-size: 10.5px; }
 .info .lbl { color: #9ca3af; font-weight: 600; }
 table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
 thead th {
-  background: #0D9488; color: #fff; text-align: left; padding: 7px 8px;
+  background: #7F1D3A; color: #fff; text-align: left; padding: 7px 8px;
   font-size: 9.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
 }
 thead th:first-child { border-radius: 4px 0 0 0; }
@@ -338,9 +338,9 @@ tbody tr:nth-child(even) { background: #fafafa; }
 .totals { width: 300px; margin-left: auto; border-collapse: collapse; }
 .totals td { padding: 4px 8px; border: none; font-size: 10.5px; }
 .totals td:last-child { text-align: right; font-weight: 600; }
-.totals .big td { font-weight: 800; font-size: 15px; border-top: 2px solid #0D9488; padding-top: 6px; color: #0D9488; }
+.totals .big td { font-weight: 800; font-size: 15px; border-top: 2px solid #C59D5F; padding-top: 6px; color: #7F1D3A; }
 .footer { text-align: center; font-size: 9.5px; color: #9ca3af; margin-top: 20px; border-top: 1px solid #e5e7eb; padding-top: 8px; }
-.status-a4 { text-align: center; margin-top: 8px; font-size: 10px; font-weight: 700; color: #0D9488; letter-spacing: 1px; }
+.status-a4 { text-align: center; margin-top: 8px; font-size: 10px; font-weight: 700; color: #7F1D3A; letter-spacing: 1px; }
 .status-a4.partial { color: #f59e0b; }
 </style></head><body>
 <div class="header">
@@ -407,17 +407,17 @@ body {
 }
 .header {
   display: flex; justify-content: space-between; align-items: center;
-  padding-bottom: 10px; border-bottom: 2.5px solid #0D9488; margin-bottom: 12px;
+  padding-bottom: 10px; border-bottom: 2.5px solid #7F1D3A; margin-bottom: 12px;
 }
 .brand { display: flex; align-items: center; gap: 8px; }
-.brand-logo { display: inline-flex; align-items: center; justify-content: center; height: 36px; padding: 0 8px; border-radius: 6px; background: #0D9488; color: #fff; font-size: 11px; font-weight: 800; letter-spacing: 0.02em; }
-.brand-name { font-size: 17px; font-weight: 800; color: #0D9488; letter-spacing: -0.3px; }
+.brand-logo { display: inline-flex; align-items: center; justify-content: center; height: 36px; padding: 0 8px; border-radius: 6px; background: #7F1D3A; color: #fff; font-size: 11px; font-weight: 800; letter-spacing: 0.02em; }
+.brand-name { font-size: 17px; font-weight: 800; color: #7F1D3A; letter-spacing: -0.3px; }
 .brand-sub { font-size: 8.5px; color: #666; margin-top: 1px; }
 .brand-addr { font-size: 8px; color: #888; }
 .badge { text-align: right; }
-.badge h2 { font-size: 18px; font-weight: 800; color: #0D9488; letter-spacing: 1px; }
+.badge h2 { font-size: 18px; font-weight: 800; color: #7F1D3A; letter-spacing: 1px; }
 .badge-id {
-  margin-top: 4px; background: #0D9488; color: #fff;
+  margin-top: 4px; background: #7F1D3A; color: #fff;
   padding: 4px 10px; border-radius: 3px; font-size: 9px; font-weight: 600; letter-spacing: 0.5px;
 }
 .info-row {
@@ -434,7 +434,7 @@ body {
 .info-block .label { color: #9ca3af; font-size: 8.5px; }
 table.items { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
 table.items thead th {
-  background: #0D9488; color: #fff; padding: 5px 7px;
+  background: #7F1D3A; color: #fff; padding: 5px 7px;
   font-size: 8.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
 }
 table.items thead th:first-child { border-radius: 4px 0 0 0; }
@@ -454,12 +454,12 @@ table.items tbody tr:last-child td { border-bottom: none; }
 .totals td:last-child { text-align: right; font-weight: 600; }
 .totals .total-row td {
   padding: 6px; font-size: 13px; font-weight: 800;
-  background: #0D9488; color: #fff; border-radius: 3px;
+  background: #7F1D3A; color: #fff; border-radius: 3px;
 }
 .status-badge {
   margin-top: 8px; text-align: center; padding: 4px;
   border-radius: 3px; font-size: 9px; font-weight: 700; letter-spacing: 1px;
-  border: 1.5px solid #0D9488; color: #0D9488;
+  border: 1.5px solid #7F1D3A; color: #7F1D3A;
 }
 .status-badge.partial { border-color: #f59e0b; color: #f59e0b; background: #fffbeb; }
 .divider { border: none; border-top: 1px dashed #d1d5db; margin: 6px 0; }

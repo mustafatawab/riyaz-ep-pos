@@ -205,7 +205,7 @@ export default function CheckoutPanel({
             <Separator />
             <div className="flex justify-between text-sm font-bold text-text-primary pt-0.5">
               <span>Total</span>
-              <span className="font-mono tabular-nums">{formatCurrency(total)}</span>
+              <span className="font-mono tabular-nums text-gold">{formatCurrency(total)}</span>
             </div>
           </div>
 

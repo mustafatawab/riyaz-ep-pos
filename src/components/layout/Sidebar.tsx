@@ -44,8 +44,8 @@ export default function Sidebar() {
         "flex items-center h-12 relative",
         collapsed ? "justify-center" : "px-3 gap-2.5"
       )}>
-        <div className="flex items-center justify-center rounded-lg h-7 px-1.5 bg-sidebar-primary/10 shrink-0 overflow-hidden">
-          <span className="text-[10px] font-display font-bold text-sidebar-primary tracking-tight whitespace-nowrap">
+        <div className="flex items-center justify-center rounded-lg h-7 px-1.5 bg-accent-subtle border border-gold/25 shrink-0 overflow-hidden">
+          <span className="text-[10px] font-display font-bold text-accent tracking-tight whitespace-nowrap">
             {collapsed ? "RE" : "Riyaz EP"}
           </span>
         </div>
@@ -106,12 +106,12 @@ export default function Sidebar() {
                 )}
               >
                 {isActive && !collapsed && (
-                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-sidebar-primary" />
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-gold" />
                 )}
                 <Icon className={cn(
                   "shrink-0 relative",
                   collapsed ? "h-3.5 w-3.5" : "h-3.5 w-3.5",
-                  isActive ? "text-sidebar-primary" : ""
+                  isActive ? "text-gold" : ""
                 )} />
                 <AnimatePresence>
                   {!collapsed && (
