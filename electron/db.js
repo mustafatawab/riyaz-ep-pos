@@ -388,32 +388,9 @@ function rowToProduct(row) {
   return { ...row };
 }
 
-function attachPrices(products) {
-  if (!products || products.length === 0) return products;
-  const ids = products.map((p) => p.id);
-  const placeholders = ids.map(() => "?").join(",");
-  const prices = getDb()
-    .prepare(
-      `SELECT id, product_id, label, purchase_price, sale_price FROM product_prices WHERE product_id IN (${placeholders})`,
-    )
-    .all(...ids);
-  const byProduct = new Map();
-  for (const pr of prices) {
-    if (!byProduct.has(pr.product_id)) byProduct.set(pr.product_id, []);
-    byProduct.get(pr.product_id).push({
-      id: pr.id,
-      productId: pr.product_id,
-      label: pr.label,
-      purchasePrice: pr.purchase_price,
-      salePrice: pr.sale_price,
-    });
-  }
-  return products.map((p) => ({ ...p, prices: byProduct.get(p.id) || [] }));
-}
-
 const PRODUCT_SELECT = `
   SELECT id, barcode, name, company, category, location, distributor_id,
-         sale_price, purchase_price, markup_percent, stock_qty, pack_size,
+         sale_price, purchase_price, markup_percent, stock_qty,
          expiry, active, created_at
   FROM products
 `;
@@ -579,7 +556,7 @@ function deleteCategory(id) {
 function listProducts(includeArchived) {
   const sql = includeArchived ? PRODUCT_SELECT : `${PRODUCT_SELECT} WHERE active = 1`;
   const rows = getDb().prepare(`${sql} ORDER BY name COLLATE NOCASE ASC`).all();
-  return attachPrices(rows.map(rowToProduct));
+  return rows.map(rowToProduct);
 }
 
 function searchProducts(q) {
@@ -589,13 +566,13 @@ function searchProducts(q) {
       `${PRODUCT_SELECT} WHERE active = 1 AND (name LIKE ? OR barcode LIKE ? OR category LIKE ? OR company LIKE ? OR location LIKE ?) ORDER BY name COLLATE NOCASE ASC LIMIT 50`,
     )
     .all(like, like, like, like, like);
-  return attachPrices(rows.map(rowToProduct));
+  return rows.map(rowToProduct);
 }
 
 function getProductByBarcode(barcode) {
   const row = getDb().prepare(`${PRODUCT_SELECT} WHERE barcode = ?`).get(barcode);
   if (!row) return null;
-  return attachPrices([rowToProduct(row)])[0];
+  return rowToProduct(row);
 }
 
 function computeMarkup(purchasePrice, salePrice) {
@@ -612,7 +589,7 @@ function createProduct(input) {
   getDb()
     .prepare(
       `INSERT INTO products (id, barcode, name, company, category, location, distributor_id, purchase_price, sale_price, markup_percent, stock_qty, pack_size, expiry, active, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, 1, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, ?, 1, ?)`,
     )
     .run(
       id,
@@ -625,20 +602,12 @@ function createProduct(input) {
       purchasePrice,
       salePrice,
       markupPercent,
-      input.packSize || 1,
       input.expiry || null,
       createdAt,
     );
-  for (const price of input.prices || []) {
-    getDb()
-      .prepare(
-        "INSERT INTO product_prices (id, product_id, label, purchase_price, sale_price) VALUES (?, ?, ?, ?, ?)",
-      )
-      .run(uid(), id, price.label || null, price.purchasePrice || 0, price.salePrice || 0);
-  }
   upsertBarcode(input.barcode, id);
   const row = getDb().prepare(`${PRODUCT_SELECT} WHERE id = ?`).get(id);
-  return attachPrices([rowToProduct(row)])[0];
+  return rowToProduct(row);
 }
 
 function updateProduct(id, input) {
@@ -648,7 +617,7 @@ function updateProduct(id, input) {
   getDb()
     .prepare(
       `UPDATE products SET barcode = ?, name = ?, company = ?, category = ?, location = ?, distributor_id = ?,
-         purchase_price = ?, sale_price = ?, markup_percent = ?, pack_size = ?, expiry = ?
+         purchase_price = ?, sale_price = ?, markup_percent = ?, pack_size = 1, expiry = ?
        WHERE id = ?`,
     )
     .run(
@@ -661,21 +630,13 @@ function updateProduct(id, input) {
       purchasePrice,
       salePrice,
       markupPercent,
-      input.packSize || 1,
       input.expiry || null,
       id,
     );
   getDb().prepare("DELETE FROM product_prices WHERE product_id = ?").run(id);
-  for (const price of input.prices || []) {
-    getDb()
-      .prepare(
-        "INSERT INTO product_prices (id, product_id, label, purchase_price, sale_price) VALUES (?, ?, ?, ?, ?)",
-      )
-      .run(uid(), id, price.label || null, price.purchasePrice || 0, price.salePrice || 0);
-  }
   upsertBarcode(input.barcode, id);
   const row = getDb().prepare(`${PRODUCT_SELECT} WHERE id = ?`).get(id);
-  return attachPrices([rowToProduct(row)])[0];
+  return rowToProduct(row);
 }
 
 function archiveProduct(id) {

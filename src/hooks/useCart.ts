@@ -3,7 +3,6 @@ import type { SaleItemInput, DiscountType } from "@/types";
 
 interface CartItem extends SaleItemInput {
   id: string;
-  packSize: number;
 }
 
 export function useCart() {
@@ -36,7 +35,7 @@ export function useCart() {
     });
   }
 
-  function addItem(product: { id: string; name: string; barcode: string; sale_price: number; pack_size?: number }) {
+  function addItem(product: { id: string; name: string; barcode: string; sale_price: number }) {
     setItems((prev) => {
       const existing = prev.find((i) => i.productId === product.id);
       if (existing) {
@@ -56,7 +55,6 @@ export function useCart() {
           quantity: 1,
           unitPrice: product.sale_price,
           subtotal: product.sale_price,
-          packSize: product.pack_size ?? 1,
         },
       ];
     });

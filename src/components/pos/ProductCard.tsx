@@ -37,7 +37,7 @@ export default function ProductCard({ product, onAdd }: ProductCardProps) {
       <p className="text-[10px] text-text-secondary mt-0.5 truncate">{product.company}</p>
       <div className="mt-3 pt-2.5 border-t border-border flex items-center justify-between">
         <span className="font-mono font-bold text-sm text-text-primary tabular-nums">{formatCurrency(product.sale_price)}</span>
-        <span className="text-[9px] text-text-secondary font-medium">{product.pack_size > 1 ? `${product.pack_size}/pack` : "1x"}</span>
+        <span className="text-[9px] text-text-secondary font-medium tabular-nums">Qty {product.stock_qty}</span>
       </div>
     </motion.button>
   );

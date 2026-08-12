@@ -15,11 +15,11 @@ import { api } from "@/lib/api";
 import { downloadCSV, downloadPDF } from "@/lib/export";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import PrintBarcodeDialog from "@/components/shared/PrintBarcodeDialog";
-import type { Product, ProductPriceInput, Category } from "@/types";
+import type { Product, Category } from "@/types";
 
 interface CsvRow {
   rowNum: number; barcode: string; name: string; category: string; location: string;
-  purchasePrice: string; salePrice: string; expiry: string; company: string; packSize: string; error?: string;
+  purchasePrice: string; salePrice: string; expiry: string; company: string; error?: string;
 }
 
 interface ImportRowResult {
@@ -40,28 +40,16 @@ const HEADER_LOOKUP: Record<string, string> = {
   "location": "location", "loc": "location", "shelf": "location", "rack": "location", "position": "location", "storage": "location",
   "expiry date": "expiry", "expiry time": "expiry", "expiry": "expiry", "exp": "expiry", "expiration": "expiry", "exp date": "expiry", "use by": "expiry",
   "company": "company", "manufacturer": "company", "brand": "company", "company name": "company", "vendor": "company", "supplier": "company",
-  "pack size": "packSize", "packsize": "packSize", "units per pack": "packSize", "quantity per pack": "packSize", "pack qty": "packSize",
-  "tablets per pack": "packSize", "pack": "packSize", "per pack": "packSize",
 };
-
-interface PriceTierForm {
-  purchasePrice: string; salePrice: string;
-}
 
 interface ProductForm {
   barcode: string; name: string; category: string; location: string;
-  purchasePrice: string; salePrice: string; packSize: string;
-  prices: PriceTierForm[];
+  purchasePrice: string; salePrice: string;
 }
-
-const emptyPriceTier = (): PriceTierForm => ({
-  purchasePrice: "", salePrice: "",
-});
 
 const emptyForm = (): ProductForm => ({
   barcode: generateBarcode(), name: "", category: "", location: "",
-  purchasePrice: "", salePrice: "", packSize: "1",
-  prices: [],
+  purchasePrice: "", salePrice: "",
 });
 
 export default function Products() {
@@ -130,21 +118,11 @@ export default function Products() {
     p.location.toLowerCase().includes(search.toLowerCase())
   );
 
-  function buildPricesPayload(): ProductPriceInput[] | undefined {
-    const validPrices = form.prices.filter((p) => p.purchasePrice);
-    if (validPrices.length === 0) return undefined;
-    return validPrices.map((p) => ({
-      purchasePrice: Number(p.purchasePrice),
-      salePrice: Number(p.salePrice) || 0,
-    }));
-  }
-
   const createMutation = useMutation({
     mutationFn: () => api.products.create({
       barcode: form.barcode, name: form.name, category: form.category,
       location: form.location, purchasePrice: Number(form.purchasePrice),
-      salePrice: Number(form.salePrice) || 0, packSize: Number(form.packSize),
-      prices: buildPricesPayload(),
+      salePrice: Number(form.salePrice) || 0,
     }),
     onSuccess: (product) => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -162,8 +140,7 @@ export default function Products() {
     mutationFn: () => api.products.update(editingId!, {
       barcode: form.barcode, name: form.name, category: form.category,
       location: form.location, purchasePrice: Number(form.purchasePrice),
-      salePrice: Number(form.salePrice) || 0, packSize: Number(form.packSize),
-      prices: buildPricesPayload(),
+      salePrice: Number(form.salePrice) || 0,
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -242,32 +219,13 @@ export default function Products() {
 
   function openEdit(product: Product) {
     setEditingId(product.id);
-    const p = (product as any).prices as { purchasePrice: number; salePrice: number }[] | undefined;
     setForm({
       barcode: product.barcode, name: product.name, category: product.category,
       location: product.location, purchasePrice: String(product.purchase_price),
-      salePrice: String(product.sale_price), packSize: String(product.pack_size),
-      prices: p
-        ? p.map((pt) => ({ purchasePrice: String(pt.purchasePrice), salePrice: String(pt.salePrice) }))
-        : [],
+      salePrice: String(product.sale_price),
     });
     setBarcodeExists(null);
     setOpen(true);
-  }
-
-  function addPriceTier() {
-    setForm((prev) => ({ ...prev, prices: [...prev.prices, emptyPriceTier()] }));
-  }
-
-  function removePriceTier(index: number) {
-    setForm((prev) => ({ ...prev, prices: prev.prices.filter((_, i) => i !== index) }));
-  }
-
-  function updatePriceTier(index: number, field: keyof PriceTierForm, value: string) {
-    setForm((prev) => ({
-      ...prev,
-      prices: prev.prices.map((pt, i) => (i === index ? { ...pt, [field]: value } : pt)),
-    }));
   }
 
   function normalizeHeader(h: string) {
@@ -296,7 +254,7 @@ export default function Products() {
     }
 
     if (!hasHeader(headerMap, "barcode")) return { errors: ["Missing required column: barcode (or bar code, code)"], rows: [] };
-    if (!hasHeader(headerMap, "name")) return { errors: ["Missing required column: name (or product name, medicine, item)"], rows: [] };
+    if (!hasHeader(headerMap, "name")) return { errors: ["Missing required column: name (or product name, item)"], rows: [] };
     if (!hasHeader(headerMap, "purchasePrice")) return { errors: ["Missing required column: purchase price (or price, purchase)"], rows: [] };
 
     const errors: string[] = [];
@@ -317,7 +275,6 @@ export default function Products() {
         location: hasHeader(headerMap, "location") ? cols[findIndex(headerMap, "location")]?.trim() || "" : "",
         expiry: hasHeader(headerMap, "expiry") ? cols[findIndex(headerMap, "expiry")]?.trim() || "" : "",
         company: hasHeader(headerMap, "company") ? cols[findIndex(headerMap, "company")]?.trim() || "" : "",
-        packSize: hasHeader(headerMap, "packSize") ? cols[findIndex(headerMap, "packSize")]?.trim() || "" : "",
       };
       const rowErrors: string[] = [];
       if (!row.barcode) rowErrors.push("Missing barcode");
@@ -394,10 +351,10 @@ export default function Products() {
   }
 
   function downloadSampleCsv() {
-    const sample = `Barcode,Product Name,Purchase Price,Sale Price,Category,Location,Expiry,Company,Pack Size
-123456,Panadol 500mg,80,100,Tablets,Shelf A1,2027-12-31,GSK,10
-123457,Brufen 400mg,120,150,Capsules,Shelf B2,2028-06-15,Abbott,20
-123458,Augmentin 1g,250,300,Tablets,Shelf A3,2027-09-01,GSK,14`;
+    const sample = `Barcode,Product Name,Purchase Price,Sale Price,Category,Location,Expiry,Company
+123456,Cotton Shirt,800,1200,Apparel,Shelf A1,2027-12-31,Local Brand
+123457,Denim Jeans,1500,2200,Apparel,Shelf B2,2028-06-15,Local Brand
+123458,Leather Belt,400,650,Accessories,Shelf A3,2027-09-01,Local Brand`;
     const blob = new Blob(["\uFEFF" + sample], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -435,7 +392,6 @@ export default function Products() {
           purchasePrice: Number(row.purchasePrice),
           salePrice: Number(row.salePrice) || 0,
           expiry: row.expiry || undefined,
-          packSize: row.packSize ? Number(row.packSize) : undefined,
         });
         results[i] = { ...results[i], status: "completed" };
       } catch (err) {
@@ -467,23 +423,9 @@ export default function Products() {
       <span className="text-[10px] text-text-secondary bg-surface-2 px-1.5 py-0.5 rounded">{p.category || "\u2014"}</span>
     ) },
     { key: "location", header: "Location", cell: (p: Product) => <span className="text-[11px] font-mono text-text-secondary">{p.location || "\u2014"}</span> },
-    { key: "prices", header: "Prices", cell: (p: Product) => {
-      const allPrices = (p as any).prices as { purchasePrice: number; salePrice: number; label?: string }[] | undefined;
-      return (
-        <div className="flex flex-col gap-0.5">
-          <span className="font-mono text-xs font-semibold text-accent">{formatCurrency(p.sale_price)}</span>
-          {allPrices && allPrices.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {allPrices.map((pt, i) => (
-                <span key={i} className="text-[9px] font-mono text-text-secondary bg-surface-2 px-1 rounded">
-                  {formatCurrency(pt.salePrice)}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      );
-    } },
+    { key: "sale_price", header: "Sale Price", cell: (p: Product) => (
+      <span className="font-mono text-xs font-semibold text-accent">{formatCurrency(p.sale_price)}</span>
+    ) },
     { key: "stockQty", header: "Stock", cell: (p: Product) => (
       <span className={`font-mono text-xs font-semibold ${p.stock_qty <= 5 ? "text-danger" : p.active ? "text-text-primary" : "text-text-secondary"}`}>{p.stock_qty}</span>
     ) },
@@ -615,7 +557,7 @@ export default function Products() {
                 <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); downloadSampleCsv(); }}>
                   <Download className="h-3.5 w-3.5 mr-1" /> Download Sample
                 </Button>
-                <p className="text-[10px] text-text-secondary/60">Supports: barcode, name, purchase price, sale price, category, location, expiry, company, pack size</p>
+                <p className="text-[10px] text-text-secondary/60">Supports: barcode, name, purchase price, sale price, category, location, expiry, company</p>
               </div>
             </div>
           ) : (
@@ -749,10 +691,6 @@ export default function Products() {
                 <Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="e.g. Shelf A1" />
               </div>
             </div>
-            <div className="space-y-1">
-              <Label>Pack Size (units per pack)</Label>
-              <Input type="number" min="1" value={form.packSize} onChange={(e) => setForm({ ...form, packSize: e.target.value })} placeholder="e.g. 10" />
-            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label>Purchase Price</Label>
@@ -762,49 +700,6 @@ export default function Products() {
                 <Label>Sale Price</Label>
                 <Input type="number" value={form.salePrice} onChange={(e) => setForm({ ...form, salePrice: e.target.value })} />
               </div>
-            </div>
-
-            <div className="border border-border rounded-lg p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-medium">Additional Price Tiers</Label>
-                <Button type="button" variant="outline" size="sm" onClick={addPriceTier} className="h-7 gap-1">
-                  <Plus className="h-3 w-3" /> Add Tier
-                </Button>
-              </div>
-              {form.prices.length === 0 && (
-                <p className="text-[11px] text-text-secondary">No additional prices.</p>
-              )}
-              {form.prices.map((pt, i) => (
-                <div key={i} className="flex items-start gap-2 p-2 rounded-lg bg-surface-2">
-                  <div className="flex-1 grid grid-cols-2 gap-2">
-                    <div>
-                      <Label className="text-[10px] text-text-secondary">Purchase</Label>
-                      <Input
-                        type="number"
-                        value={pt.purchasePrice}
-                        onChange={(e) => updatePriceTier(i, "purchasePrice", e.target.value)}
-                        className="h-7 text-[11px]"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-[10px] text-text-secondary">Sale</Label>
-                      <Input
-                        type="number"
-                        value={pt.salePrice}
-                        onChange={(e) => updatePriceTier(i, "salePrice", e.target.value)}
-                        className="h-7 text-[11px]"
-                      />
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => removePriceTier(i)}
-                    className="h-7 w-7 rounded-md flex items-center justify-center text-text-secondary hover:text-danger hover:bg-danger/5 transition-colors mt-4 shrink-0"
-                    title="Remove tier"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
             </div>
 
             <Button className="w-full mt-1" disabled={!form.name || !form.purchasePrice || createMutation.isPending || updateMutation.isPending}

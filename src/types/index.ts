@@ -8,20 +8,6 @@ export interface CategoryInput {
   name: string;
 }
 
-export interface ProductPrice {
-  id: string;
-  productId: string;
-  label: string;
-  purchasePrice: number;
-  salePrice: number;
-}
-
-export interface ProductPriceInput {
-  label?: string;
-  purchasePrice: number;
-  salePrice?: number;
-}
-
 export interface Product {
   id: string;
   barcode: string;
@@ -34,11 +20,9 @@ export interface Product {
   purchase_price: number;
   markup_percent: number;
   stock_qty: number;
-  pack_size: number;
   expiry?: string;
   active: number;
   created_at: string;
-  prices?: ProductPrice[];
 }
 
 export interface ProductInput {
@@ -52,8 +36,6 @@ export interface ProductInput {
   category?: string;
   location?: string;
   expiry?: string;
-  packSize?: number;
-  prices?: ProductPriceInput[];
 }
 
 export interface Customer {

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import BarcodeInput from "@/components/pos/BarcodeInput";
@@ -8,19 +8,8 @@ import PrintPreviewDialog from "@/components/shared/PrintPreviewDialog";
 import { useCart } from "@/hooks/useCart";
 import { useDebounce } from "@/hooks/useDebounce";
 import { api } from "@/lib/api";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
-import type { Product, PrinterConfig, ProductPrice } from "@/types";
+import type { Product, PrinterConfig } from "@/types";
 
 export default function POS() {
   const [search, setSearch] = useState("");
@@ -29,12 +18,6 @@ export default function POS() {
   const debouncedSearch = useDebounce(search, 200);
   const cart = useCart();
   const queryClient = useQueryClient();
-
-  const [pricePickerOpen, setPricePickerOpen] = useState(false);
-  const [pendingProduct, setPendingProduct] = useState<Product | null>(null);
-  const pendingPrices = pendingProduct
-    ? ((pendingProduct as any).prices as ProductPrice[] | undefined)
-    : undefined;
 
   const { data: products = [] } = useQuery({
     queryKey: ["products", debouncedSearch],
@@ -53,66 +36,25 @@ export default function POS() {
     return allProducts.data ?? [];
   }, [debouncedSearch, products, allProducts.data]);
 
-  function addProductToCart(product: Product, salePrice: number) {
-    if (product.stock_qty === 0) {
-      setError(`${product.name} is out of stock`);
-      return;
-    }
-    cart.addItem({ ...product, sale_price: salePrice });
-  }
-
-  function promptPriceTier(product: Product) {
-    const tiers = (product as any).prices as ProductPrice[] | undefined;
-    if (tiers && tiers.length > 0) {
-      setPendingProduct(product);
-      setPricePickerOpen(true);
-    } else {
-      addProductToCart(product, product.sale_price);
-    }
-  }
-
-  function handleTierSelect(tierSalePrice: number) {
-    if (!pendingProduct) return;
-    addProductToCart(pendingProduct, tierSalePrice);
-    setPendingProduct(null);
-    setPricePickerOpen(false);
-  }
-
-  const handleBarcodeSubmit = async (value: string) => {
-    const product = await api.products.getByBarcode(value);
-    if (product) {
-      const existing = cart.items.find(i => i.productId === product.id);
-      if (existing) {
-        cart.incrementBy(product.id, product.pack_size);
-        return;
-      }
-      promptPriceTier(product);
-    } else {
-      const found = displayProducts.find(
-        (p: Product) => p.barcode === value || p.name.toLowerCase() === value.toLowerCase()
-      );
-      if (found) {
-        const existing = cart.items.find(i => i.productId === found.id);
-        if (existing) {
-          cart.incrementBy(found.id, found.pack_size);
-          return;
-        }
-        promptPriceTier(found);
-      }
-    }
-  };
-
   const handleAddProduct = (product: Product) => {
     if (product.stock_qty === 0) {
       setError(`${product.name} is out of stock`);
       return;
     }
-    const existing = cart.items.find(i => i.productId === product.id);
-    if (existing) {
-      cart.incrementBy(product.id, product.pack_size);
+    setError("");
+    cart.addItem(product);
+  };
+
+  const handleBarcodeSubmit = async (value: string) => {
+    const product = await api.products.getByBarcode(value);
+    if (product) {
+      handleAddProduct(product);
       return;
     }
-    promptPriceTier(product);
+    const found = displayProducts.find(
+      (p: Product) => p.barcode === value || p.name.toLowerCase() === value.toLowerCase()
+    );
+    if (found) handleAddProduct(found);
   };
 
   const [pendingPrintData, setPendingPrintData] = useState<unknown>(null);
@@ -233,39 +175,6 @@ export default function POS() {
           />
         </div>
       </div>
-
-      <AlertDialog open={pricePickerOpen} onOpenChange={(v) => { if (!v) { setPendingProduct(null); setPricePickerOpen(false); } }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Select Price Tier</AlertDialogTitle>
-            <AlertDialogDescription>
-              {pendingProduct?.name ?? "Product"} has multiple price tiers. Choose one to add to cart.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="space-y-2 py-3 px-5">
-            <button
-              onClick={() => pendingProduct && handleTierSelect(pendingProduct.sale_price ?? 0)}
-              className="w-full text-left p-2.5 rounded-lg border border-border hover:border-accent/50 transition-colors flex items-center justify-between"
-            >
-              <span className="text-xs font-medium">Standard</span>
-              <span className="font-mono font-bold text-accent text-xs">{formatCurrency(pendingProduct?.sale_price ?? 0)}</span>
-            </button>
-            {pendingPrices?.map((tier) => (
-              <button
-                key={tier.id}
-                onClick={() => handleTierSelect(tier.salePrice)}
-                className="w-full text-left p-2.5 rounded-lg border border-border hover:border-accent/50 transition-colors flex items-center justify-between"
-              >
-                <span className="text-xs font-medium">{tier.label || "Untitled"}</span>
-                <span className="font-mono font-bold text-accent text-xs">{formatCurrency(tier.salePrice)}</span>
-              </button>
-            ))}
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => { setPendingProduct(null); }}>Cancel</AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {showPrintDialog && pendingPrintData && (
         <PrintPreviewDialog
