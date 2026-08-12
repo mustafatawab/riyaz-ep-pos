@@ -82,6 +82,7 @@ function migrate() {
       status TEXT NOT NULL DEFAULT 'paid',
       is_payment INTEGER NOT NULL DEFAULT 0,
       return_count INTEGER NOT NULL DEFAULT 0,
+      invoice_number TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL,
       FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL
     );
@@ -125,6 +126,7 @@ function migrate() {
       product_id TEXT NOT NULL,
       distributor_id TEXT,
       company_id TEXT,
+      supplier_id TEXT,
       invoice_number TEXT NOT NULL DEFAULT '',
       quantity REAL NOT NULL DEFAULT 0,
       purchase_price REAL NOT NULL DEFAULT 0,
@@ -146,6 +148,15 @@ function migrate() {
     );
 
     CREATE TABLE IF NOT EXISTS companies (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      phone TEXT NOT NULL DEFAULT '',
+      address TEXT NOT NULL DEFAULT '',
+      second_number TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS suppliers (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       phone TEXT NOT NULL DEFAULT '',
@@ -196,6 +207,127 @@ function migrate() {
     CREATE INDEX IF NOT EXISTS idx_sale_items_sale ON sale_items(sale_id);
     CREATE INDEX IF NOT EXISTS idx_arrears_customer ON arrears(customer_id);
     CREATE INDEX IF NOT EXISTS idx_product_prices_product ON product_prices(product_id);
+  `);
+
+  ensureSalesInvoiceNumbers();
+  ensureSuppliers();
+}
+
+function tableHasColumn(table, column) {
+  return db.prepare(`PRAGMA table_info(${table})`).all().some((c) => c.name === column);
+}
+
+function localYmd(isoOrDate) {
+  const d = isoOrDate instanceof Date ? isoOrDate : new Date(isoOrDate || Date.now());
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}${m}${day}`;
+}
+
+function nextInvoiceNumber(createdAtIso) {
+  const ymd = localYmd(createdAtIso || new Date().toISOString());
+  const prefix = `INV-${ymd}-`;
+  const row = db
+    .prepare(
+      `SELECT invoice_number FROM sales
+       WHERE invoice_number LIKE ?
+       ORDER BY invoice_number DESC
+       LIMIT 1`,
+    )
+    .get(`${prefix}%`);
+  let seq = 1;
+  if (row && row.invoice_number) {
+    const n = parseInt(String(row.invoice_number).split("-").pop(), 10);
+    if (Number.isFinite(n)) seq = n + 1;
+  }
+  return `${prefix}${String(seq).padStart(4, "0")}`;
+}
+
+function backfillInvoiceNumbers() {
+  const rows = db
+    .prepare(
+      `SELECT id, created_at FROM sales
+       WHERE is_payment = 0 AND (invoice_number IS NULL OR invoice_number = '')
+       ORDER BY created_at ASC, id ASC`,
+    )
+    .all();
+  if (!rows.length) return;
+
+  const counters = {};
+  const existing = db
+    .prepare(
+      `SELECT invoice_number FROM sales
+       WHERE invoice_number LIKE 'INV-%'
+       ORDER BY invoice_number ASC`,
+    )
+    .all();
+  for (const row of existing) {
+    const parts = String(row.invoice_number).split("-");
+    if (parts.length < 3) continue;
+    const ymd = parts[1];
+    const n = parseInt(parts[parts.length - 1], 10);
+    if (!Number.isFinite(n)) continue;
+    counters[ymd] = Math.max(counters[ymd] || 0, n);
+  }
+
+  const update = db.prepare("UPDATE sales SET invoice_number = ? WHERE id = ?");
+  const assign = db.transaction(() => {
+    for (const row of rows) {
+      const ymd = localYmd(row.created_at);
+      counters[ymd] = (counters[ymd] || 0) + 1;
+      update.run(`INV-${ymd}-${String(counters[ymd]).padStart(4, "0")}`, row.id);
+    }
+  });
+  assign();
+}
+
+function ensureSalesInvoiceNumbers() {
+  if (!tableHasColumn("sales", "invoice_number")) {
+    db.exec(`ALTER TABLE sales ADD COLUMN invoice_number TEXT NOT NULL DEFAULT ''`);
+  }
+  backfillInvoiceNumbers();
+  db.exec(
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_sales_invoice_number
+     ON sales(invoice_number) WHERE invoice_number != ''`,
+  );
+}
+
+function ensureSuppliers() {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS suppliers (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      phone TEXT NOT NULL DEFAULT '',
+      address TEXT NOT NULL DEFAULT '',
+      second_number TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL
+    );
+  `);
+
+  if (!tableHasColumn("stock", "supplier_id")) {
+    db.exec(`ALTER TABLE stock ADD COLUMN supplier_id TEXT`);
+  }
+
+  const supplierCount = db.prepare("SELECT COUNT(*) AS c FROM suppliers").get().c;
+  if (supplierCount === 0) {
+    const companies = db.prepare("SELECT id, name, phone, address, second_number, created_at FROM companies").all();
+    const insert = db.prepare(
+      "INSERT OR IGNORE INTO suppliers (id, name, phone, address, second_number, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+    );
+    for (const c of companies) {
+      insert.run(c.id, c.name, c.phone || "", c.address || "", c.second_number || "", c.created_at || now());
+    }
+    const distributors = db.prepare("SELECT id, name, phone, created_at FROM distributors").all();
+    for (const d of distributors) {
+      insert.run(d.id, d.name, d.phone || "", "", "", d.created_at || now());
+    }
+  }
+
+  db.exec(`
+    UPDATE stock
+    SET supplier_id = COALESCE(NULLIF(supplier_id, ''), company_id, distributor_id)
+    WHERE supplier_id IS NULL OR supplier_id = ''
   `);
 }
 
@@ -587,7 +719,7 @@ function getCustomer(id) {
   const customer = rowToCustomer(row);
   const purchases = getDb()
     .prepare(
-      `SELECT s.id, s.customer_id, s.subtotal, s.discount, s.total, s.amount_paid, s.change, s.status, s.created_at,
+      `SELECT s.id, s.customer_id, s.subtotal, s.discount, s.total, s.amount_paid, s.change, s.status, s.invoice_number, s.created_at,
               (SELECT COUNT(*) FROM sale_items si WHERE si.sale_id = s.id) AS item_count
        FROM sales s WHERE s.customer_id = ? AND s.is_payment = 0 ORDER BY s.created_at DESC`,
     )
@@ -645,14 +777,15 @@ function createSale(input) {
   return getDb().transaction(() => {
     const id = uid();
     const createdAt = now();
+    const invoiceNumber = nextInvoiceNumber(createdAt);
     const status = input.amountPaid >= input.total ? "paid" : "partial";
     const change = Math.max(0, input.amountPaid - input.total);
     getDb()
       .prepare(
-        `INSERT INTO sales (id, customer_id, subtotal, discount, total, amount_paid, change, status, is_payment, return_count, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)`,
+        `INSERT INTO sales (id, customer_id, subtotal, discount, total, amount_paid, change, status, is_payment, return_count, invoice_number, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)`,
       )
-      .run(id, input.customerId || null, input.subtotal || 0, input.discount || 0, input.total, input.amountPaid, change, status, createdAt);
+      .run(id, input.customerId || null, input.subtotal || 0, input.discount || 0, input.total, input.amountPaid, change, status, invoiceNumber, createdAt);
 
     for (const item of input.items || []) {
       getDb()
@@ -697,8 +830,8 @@ function listSales(opts) {
   const params = [];
   if (opts.search) {
     const like = `%${opts.search}%`;
-    conditions.push(`(s.id LIKE ? OR c.name LIKE ? OR EXISTS (SELECT 1 FROM sale_items si WHERE si.sale_id = s.id AND si.product_name LIKE ?))`);
-    params.push(like, like, like);
+    conditions.push(`(s.invoice_number LIKE ? OR s.id LIKE ? OR c.name LIKE ? OR EXISTS (SELECT 1 FROM sale_items si WHERE si.sale_id = s.id AND si.product_name LIKE ?))`);
+    params.push(like, like, like, like);
   }
   if (opts.dateFrom) {
     conditions.push(`s.created_at >= ?`);
@@ -822,13 +955,12 @@ function deleteArrear(id) {
 function listStock() {
   return getDb()
     .prepare(
-      `SELECT st.id, st.product_id, p.name AS product_name, st.distributor_id, d.name AS distributor_name,
-              st.company_id, c.name AS company_name, st.invoice_number, st.quantity,
+      `SELECT st.id, st.product_id, p.name AS product_name, st.supplier_id, s.name AS supplier_name,
+              st.invoice_number, st.quantity,
               st.purchase_price, st.sale_price, st.expiry, st.total_value, st.active, st.created_at
        FROM stock st
        LEFT JOIN products p ON p.id = st.product_id
-       LEFT JOIN distributors d ON d.id = st.distributor_id
-       LEFT JOIN companies c ON c.id = st.company_id
+       LEFT JOIN suppliers s ON s.id = st.supplier_id
        ORDER BY st.created_at DESC`,
     )
     .all();
@@ -844,10 +976,10 @@ function createStock(input) {
     const id = uid();
     getDb()
       .prepare(
-        `INSERT INTO stock (id, product_id, distributor_id, company_id, invoice_number, quantity, purchase_price, sale_price, expiry, total_value, active, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+        `INSERT INTO stock (id, product_id, supplier_id, invoice_number, quantity, purchase_price, sale_price, expiry, total_value, active, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
       )
-      .run(id, input.productId, input.distributorId || null, input.companyId || null, input.invoiceNumber || "", quantity, purchasePrice, salePrice, input.expiry || null, quantity * purchasePrice, now());
+      .run(id, input.productId, input.supplierId || null, input.invoiceNumber || "", quantity, purchasePrice, salePrice, input.expiry || null, quantity * purchasePrice, now());
     getDb().prepare("UPDATE products SET stock_qty = stock_qty + ? WHERE id = ?").run(quantity, input.productId);
     return getDb().prepare("SELECT * FROM stock WHERE id = ?").get(id);
   })();
@@ -864,11 +996,11 @@ function updateStock(id, input) {
     const salePrice = input.salePrice ?? product.sale_price;
     getDb()
       .prepare(
-        `UPDATE stock SET product_id = ?, distributor_id = ?, company_id = ?, invoice_number = ?, quantity = ?,
+        `UPDATE stock SET product_id = ?, supplier_id = ?, invoice_number = ?, quantity = ?,
            purchase_price = ?, sale_price = ?, expiry = ?, total_value = ?
          WHERE id = ?`,
       )
-      .run(input.productId, input.distributorId || null, input.companyId || null, input.invoiceNumber || "", quantity, purchasePrice, salePrice, input.expiry || null, quantity * purchasePrice, id);
+      .run(input.productId, input.supplierId || null, input.invoiceNumber || "", quantity, purchasePrice, salePrice, input.expiry || null, quantity * purchasePrice, id);
     getDb().prepare("UPDATE products SET stock_qty = MAX(0, stock_qty + ?) WHERE id = ?").run(quantity - existing.quantity, input.productId);
     return getDb().prepare("SELECT * FROM stock WHERE id = ?").get(id);
   })();
@@ -884,64 +1016,38 @@ function deleteStock(id) {
   return { success: true };
 }
 
-/* ------------------------- distributors ------------------------- */
+/* ------------------------- suppliers ------------------------- */
 
-function listDistributors() {
+function listSuppliers() {
   return getDb()
     .prepare(
-      `SELECT d.id, d.name, d.phone, d.company_id, c.name AS company_name, d.created_at,
-              (SELECT COUNT(*) FROM products p WHERE p.distributor_id = d.id AND p.active = 1) AS product_count
-       FROM distributors d LEFT JOIN companies c ON c.id = d.company_id
-       ORDER BY d.name COLLATE NOCASE ASC`,
+      `SELECT s.id, s.name, s.phone, s.address, s.second_number, s.created_at,
+              (SELECT COUNT(*) FROM stock st WHERE st.supplier_id = s.id AND st.active = 1) AS stock_count
+       FROM suppliers s
+       ORDER BY s.name COLLATE NOCASE ASC`,
     )
     .all();
 }
 
-function createDistributor(input) {
-  const id = uid();
-  getDb().prepare("INSERT INTO distributors (id, name, phone, company_id, created_at) VALUES (?, ?, ?, ?, ?)").run(id, input.name, input.phone || "", input.companyId || null, now());
-  return getDb().prepare("SELECT id, name, phone, company_id, created_at FROM distributors WHERE id = ?").get(id);
-}
-
-function updateDistributor(id, input) {
-  getDb().prepare("UPDATE distributors SET name = ?, phone = ?, company_id = ? WHERE id = ?").run(input.name, input.phone || "", input.companyId || null, id);
-  return getDb().prepare("SELECT id, name, phone, company_id, created_at FROM distributors WHERE id = ?").get(id);
-}
-
-function deleteDistributor(id) {
-  getDb().prepare("DELETE FROM distributors WHERE id = ?").run(id);
-  return { success: true };
-}
-
-/* ------------------------- companies ------------------------- */
-
-function listCompanies() {
-  return getDb()
-    .prepare(
-      `SELECT c.id, c.name, c.phone, c.address, c.second_number, c.created_at,
-              (SELECT COUNT(*) FROM products p WHERE p.company = c.name) AS product_count
-       FROM companies c ORDER BY c.name COLLATE NOCASE ASC`,
-    )
-    .all();
-}
-
-function createCompany(input) {
+function createSupplier(input) {
   const id = uid();
   getDb()
-    .prepare("INSERT INTO companies (id, name, phone, address, second_number, created_at) VALUES (?, ?, ?, ?, ?, ?)")
+    .prepare("INSERT INTO suppliers (id, name, phone, address, second_number, created_at) VALUES (?, ?, ?, ?, ?, ?)")
     .run(id, input.name, input.phone || "", input.address || "", input.second_number || "", now());
-  return getDb().prepare("SELECT id, name, phone, address, second_number, created_at FROM companies WHERE id = ?").get(id);
+  return getDb().prepare("SELECT id, name, phone, address, second_number, created_at FROM suppliers WHERE id = ?").get(id);
 }
 
-function updateCompany(id, input) {
+function updateSupplier(id, input) {
   getDb()
-    .prepare("UPDATE companies SET name = ?, phone = ?, address = ?, second_number = ? WHERE id = ?")
+    .prepare("UPDATE suppliers SET name = ?, phone = ?, address = ?, second_number = ? WHERE id = ?")
     .run(input.name, input.phone || "", input.address || "", input.second_number || "", id);
-  return getDb().prepare("SELECT id, name, phone, address, second_number, created_at FROM companies WHERE id = ?").get(id);
+  return getDb().prepare("SELECT id, name, phone, address, second_number, created_at FROM suppliers WHERE id = ?").get(id);
 }
 
-function deleteCompany(id) {
-  getDb().prepare("DELETE FROM companies WHERE id = ?").run(id);
+function deleteSupplier(id) {
+  const inUse = getDb().prepare("SELECT COUNT(*) AS c FROM stock WHERE supplier_id = ? AND active = 1").get(id).c;
+  if (inUse > 0) throw new Error("Cannot delete supplier with active stock purchases");
+  getDb().prepare("DELETE FROM suppliers WHERE id = ?").run(id);
   return { success: true };
 }
 
@@ -950,7 +1056,7 @@ function deleteCompany(id) {
 function listReturns() {
   const rows = getDb()
     .prepare(
-      `SELECT r.id, r.sale_id, c.name AS customer_name, r.refund_amount, r.reason, r.created_at
+      `SELECT r.id, r.sale_id, s.invoice_number, c.name AS customer_name, r.refund_amount, r.reason, r.created_at
        FROM returns r LEFT JOIN sales s ON s.id = r.sale_id LEFT JOIN customers c ON c.id = s.customer_id
        ORDER BY r.created_at DESC`,
     )
@@ -966,7 +1072,7 @@ function listReturns() {
 function getReturn(id) {
   const row = getDb()
     .prepare(
-      `SELECT r.id, r.sale_id, c.name AS customer_name, r.refund_amount, r.reason, r.created_at
+      `SELECT r.id, r.sale_id, s.invoice_number, c.name AS customer_name, r.refund_amount, r.reason, r.created_at
        FROM returns r LEFT JOIN sales s ON s.id = r.sale_id LEFT JOIN customers c ON c.id = s.customer_id
        WHERE r.id = ?`,
     )
@@ -1177,17 +1283,11 @@ const dbApi = {
     update: updateStock,
     delete: deleteStock,
   },
-  distributors: {
-    list: listDistributors,
-    create: createDistributor,
-    update: updateDistributor,
-    delete: deleteDistributor,
-  },
-  companies: {
-    list: listCompanies,
-    create: createCompany,
-    update: updateCompany,
-    delete: deleteCompany,
+  suppliers: {
+    list: listSuppliers,
+    create: createSupplier,
+    update: updateSupplier,
+    delete: deleteSupplier,
   },
   returns: {
     list: listReturns,

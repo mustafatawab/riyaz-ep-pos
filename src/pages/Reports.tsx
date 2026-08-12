@@ -107,7 +107,7 @@ export default function Reports() {
 
   const returnColumns = [
     { key: "created_at", header: "Date", cell: (r: ReturnEntry) => <span className="font-mono text-xs text-text-secondary">{formatDateTime(r.created_at)}</span> },
-    { key: "sale_id", header: "Sale ID", cell: (r: ReturnEntry) => <span className="font-mono text-xs text-text-secondary">{r.sale_id.slice(0, 8)}</span> },
+    { key: "sale_id", header: "Invoice No", cell: (r: ReturnEntry) => <span className="font-mono text-xs text-text-secondary">{r.invoice_number || r.sale_id.slice(0, 8)}</span> },
     { key: "refund_amount", header: "Refund", cell: (r: ReturnEntry) => <span className="font-mono font-medium text-danger">{formatCurrency(r.refund_amount)}</span> },
     { key: "reason", header: "Reason", cell: (r: ReturnEntry) => <span className="text-text-secondary">{r.reason}</span> },
   ];
@@ -246,10 +246,10 @@ export default function Reports() {
 
         <TabsContent value="returns">
           <div className="flex items-center gap-2 mb-4">
-            <Button variant="outline" size="sm" onClick={() => downloadCSV(`returns_report_${dateRange.from}_${dateRange.to}.csv`, ["Date","Sale ID","Refund","Reason"], filteredReturns.map((r: ReturnEntry) => [r.created_at, r.sale_id, r.refund_amount, r.reason]))}>
+            <Button variant="outline" size="sm" onClick={() => downloadCSV(`returns_report_${dateRange.from}_${dateRange.to}.csv`, ["Date","Invoice No","Refund","Reason"], filteredReturns.map((r: ReturnEntry) => [r.created_at, r.invoice_number || r.sale_id, r.refund_amount, r.reason]))}>
               <Download className="h-4 w-4 mr-1" />CSV
             </Button>
-            <Button variant="outline" size="sm" onClick={() => downloadPDF(`returns_report_${dateRange.from}_${dateRange.to}.pdf`, "Returns Report", ["Date","Sale ID","Refund","Reason"], filteredReturns.map((r: ReturnEntry) => [r.created_at, r.sale_id, r.refund_amount, r.reason]))}>
+            <Button variant="outline" size="sm" onClick={() => downloadPDF(`returns_report_${dateRange.from}_${dateRange.to}.pdf`, "Returns Report", ["Date","Invoice No","Refund","Reason"], filteredReturns.map((r: ReturnEntry) => [r.created_at, r.invoice_number || r.sale_id, r.refund_amount, r.reason]))}>
               <Download className="h-4 w-4 mr-1" />PDF
             </Button>
           </div>

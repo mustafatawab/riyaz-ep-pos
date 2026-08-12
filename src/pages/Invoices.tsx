@@ -24,26 +24,26 @@ export default function Invoices() {
   });
 
   const exportData = useCallback(() => {
-    const headers = ["Sale ID", "Date", "Customer", "Items", "Subtotal", "Discount", "Total", "Paid", "Change", "Status"];
+    const headers = ["Invoice No", "Date", "Customer", "Items", "Subtotal", "Discount", "Total", "Paid", "Change", "Status"];
     return sales.map((s: Sale) => [
-      s.id, s.created_at, s.customer_name || "Walk-in",
+      s.invoice_number || s.id, s.created_at, s.customer_name || "Walk-in",
       s.item_count ?? 0, s.subtotal, s.discount, s.total, s.amount_paid, s.change, s.status,
     ]);
   }, [sales]);
 
   const handleExportCSV = useCallback(() => {
-    const headers = ["Sale ID", "Date", "Customer", "Items", "Subtotal", "Discount", "Total", "Paid", "Change", "Status"];
+    const headers = ["Invoice No", "Date", "Customer", "Items", "Subtotal", "Discount", "Total", "Paid", "Change", "Status"];
     downloadCSV(`invoices_${dateFrom || "all"}_${dateTo || "all"}.csv`, headers, exportData());
   }, [exportData, dateFrom, dateTo]);
 
   const handleExportPDF = useCallback(() => {
-    const headers = ["Sale ID", "Date", "Customer", "Items", "Subtotal", "Discount", "Total", "Paid", "Change", "Status"];
+    const headers = ["Invoice No", "Date", "Customer", "Items", "Subtotal", "Discount", "Total", "Paid", "Change", "Status"];
     downloadPDF(`invoices_${dateFrom || "all"}_${dateTo || "all"}.pdf`, "Invoices & Billing", headers, exportData());
   }, [exportData, dateFrom, dateTo]);
 
   const columns = [
     { key: "created_at", header: "Date", cell: (s: Sale) => <span className="font-mono text-xs text-text-secondary">{formatDateTime(s.created_at)}</span> },
-    { key: "id", header: "Invoice ID", cell: (s: Sale) => <span className="font-mono text-xs text-text-secondary">{s.id}</span> },
+    { key: "invoice_number", header: "Invoice No", cell: (s: Sale) => <span className="font-mono text-xs font-medium text-text-primary">{s.invoice_number || s.id}</span> },
     { key: "customer_name", header: "Customer", cell: (s: Sale) => <span>{s.customer_name || "Walk-in"}</span> },
     { key: "item_count", header: "Items", cell: (s: Sale) => <span className="font-mono text-sm">{(s as any).item_count ?? s.items?.length ?? 0}</span> },
     { key: "total", header: "Total", cell: (s: Sale) => <span className="font-mono font-medium">{formatCurrency(s.total)}</span> },
@@ -58,7 +58,7 @@ export default function Invoices() {
         <div className="flex-1 min-w-[200px] max-w-sm">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary" />
-            <Input placeholder="Search by invoice ID or customer..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+            <Input placeholder="Search by invoice no or customer..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
           </div>
         </div>
         <div className="flex items-center gap-2">

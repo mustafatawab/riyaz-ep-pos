@@ -1,7 +1,7 @@
 import type {
   Product, ProductInput, Customer, CustomerInput, Sale, SaleInput,
-  Arrear, ArrearInput, StockPurchase, StockInput, Distributor, DistributorInput,
-  Company, CompanyInput, ReturnEntry, ReturnInput, Expense, ExpenseInput,
+  Arrear, ArrearInput, StockPurchase, StockInput, Supplier, SupplierInput,
+  ReturnEntry, ReturnInput, Expense, ExpenseInput,
   Category, CategoryInput, DashboardStats, BarcodeEntry,
 } from "@/types";
 import type { BackupResult, BackupEntry, GDriveConfig } from "@/types/electron";
@@ -74,17 +74,11 @@ const api = {
     update: (id: string, p: StockInput): Promise<StockPurchase> => call("stock.update", id, p),
     delete: (id: string): Promise<{ success: boolean }> => call("stock.delete", id),
   },
-  distributors: {
-    list: (): Promise<Distributor[]> => call("distributors.list"),
-    create: (d: DistributorInput): Promise<Distributor> => call("distributors.create", d),
-    update: (id: string, d: DistributorInput): Promise<Distributor> => call("distributors.update", id, d),
-    delete: (id: string): Promise<{ success: boolean }> => call("distributors.delete", id),
-  },
-  companies: {
-    list: (): Promise<Company[]> => call("companies.list"),
-    create: (c: CompanyInput): Promise<Company> => call("companies.create", c),
-    update: (id: string, c: CompanyInput): Promise<Company> => call("companies.update", id, c),
-    delete: (id: string): Promise<{ success: boolean }> => call("companies.delete", id),
+  suppliers: {
+    list: (): Promise<Supplier[]> => call("suppliers.list"),
+    create: (s: SupplierInput): Promise<Supplier> => call("suppliers.create", s),
+    update: (id: string, s: SupplierInput): Promise<Supplier> => call("suppliers.update", id, s),
+    delete: (id: string): Promise<{ success: boolean }> => call("suppliers.delete", id),
   },
   returns: {
     list: (): Promise<ReturnEntry[]> => call("returns.list"),

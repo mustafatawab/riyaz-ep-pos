@@ -93,7 +93,7 @@ export default function InvoiceDetailDialog({ open, onOpenChange, saleId }: Invo
               </span>
             </div>
             <p className="font-mono text-[10px] text-text-secondary tracking-wider mb-4">
-              {sale.id}
+              {sale.invoice_number || sale.id}
             </p>
 
             <div className="text-[11px] text-text-primary mb-4 pb-3 border-b border-border">

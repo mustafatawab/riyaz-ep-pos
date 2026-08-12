@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, RotateCcw, Eye, EyeOff, Barcode, Search } from "lucide-react";
+import { Pencil, Trash2, RotateCcw, Eye, EyeOff, Barcode, Search } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import DataTable from "@/components/shared/DataTable";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { api } from "@/lib/api";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
-import type { StockPurchase, Product, Company, Distributor } from "@/types";
+import type { StockPurchase, Product, Supplier } from "@/types";
+
+const emptyForm = {
+  productId: "",
+  supplierId: "",
+  invoiceNumber: "",
+  packs: "1",
+  quantity: "",
+  expiry: "",
+};
 
 export default function Stock() {
   const queryClient = useQueryClient();
@@ -25,10 +34,7 @@ export default function Stock() {
   const [search, setSearch] = useState("");
   const [scanValue, setScanValue] = useState("");
   const scanRef = useRef<HTMLInputElement>(null);
-  const [form, setForm] = useState({
-    productId: "", distributorId: "", companyId: "",
-    invoiceNumber: "", packs: "1", quantity: "", expiry: "",
-  });
+  const [form, setForm] = useState(emptyForm);
   const [qtyLocked, setQtyLocked] = useState(true);
 
   const { data: stockEntries = [], isLoading } = useQuery({ queryKey: ["stock"], queryFn: api.stock.list });
@@ -36,13 +42,11 @@ export default function Stock() {
   const searched = filtered.filter((s: StockPurchase) =>
     !search
     || (s.product_name && s.product_name.toLowerCase().includes(search.toLowerCase()))
-    || (s.company_name && s.company_name.toLowerCase().includes(search.toLowerCase()))
-    || (s.distributor_name && s.distributor_name.toLowerCase().includes(search.toLowerCase()))
+    || (s.supplier_name && s.supplier_name.toLowerCase().includes(search.toLowerCase()))
     || (s.invoice_number && s.invoice_number.toLowerCase().includes(search.toLowerCase()))
   );
   const { data: products = [] } = useQuery({ queryKey: ["products"], queryFn: api.products.list });
-  const { data: distributors = [] } = useQuery({ queryKey: ["distributors"], queryFn: api.distributors.list });
-  const { data: companies = [] } = useQuery({ queryKey: ["companies"], queryFn: api.companies.list });
+  const { data: suppliers = [] } = useQuery({ queryKey: ["suppliers"], queryFn: api.suppliers.list });
 
   const selectedProduct = products.find((p: Product) => p.id === form.productId) as Product | undefined;
   const packSize = selectedProduct?.pack_size ?? 1;
@@ -62,8 +66,7 @@ export default function Stock() {
   const createMutation = useMutation({
     mutationFn: () => api.stock.create({
       productId: form.productId,
-      distributorId: form.distributorId || undefined,
-      companyId: form.companyId || undefined,
+      supplierId: form.supplierId || undefined,
       invoiceNumber: form.invoiceNumber,
       quantity: Number(form.quantity),
       expiry: form.expiry || undefined,
@@ -71,8 +74,9 @@ export default function Stock() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["stock"] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["suppliers"] });
       setOpen(false);
-      setForm({ productId: "", distributorId: "", companyId: "", invoiceNumber: "", packs: "1", quantity: "", expiry: "" });
+      setForm(emptyForm);
       toast.success("Stock purchase recorded");
     },
     onError: (err) => {
@@ -85,6 +89,7 @@ export default function Stock() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["stock"] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["suppliers"] });
       toast.success("Stock entry deleted");
       setDeleteId(null);
     },
@@ -97,8 +102,7 @@ export default function Stock() {
   const updateMutation = useMutation({
     mutationFn: () => api.stock.update(editingId!, {
       productId: form.productId,
-      distributorId: form.distributorId || undefined,
-      companyId: form.companyId || undefined,
+      supplierId: form.supplierId || undefined,
       invoiceNumber: form.invoiceNumber,
       quantity: Number(form.quantity),
       expiry: form.expiry || undefined,
@@ -106,9 +110,10 @@ export default function Stock() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["stock"] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["suppliers"] });
       setOpen(false);
       setEditingId(null);
-      setForm({ productId: "", distributorId: "", companyId: "", invoiceNumber: "", packs: "1", quantity: "", expiry: "" });
+      setForm(emptyForm);
       toast.success("Stock purchase updated");
     },
     onError: (err) => {
@@ -136,7 +141,7 @@ export default function Stock() {
 
   function openAdd() {
     setEditingId(null);
-    setForm({ productId: "", distributorId: "", companyId: "", invoiceNumber: "", packs: "1", quantity: "", expiry: "" });
+    setForm(emptyForm);
     setQtyLocked(true);
     setScanValue("");
     setOpen(true);
@@ -149,8 +154,7 @@ export default function Stock() {
     setEditingId(entry.id);
     setForm({
       productId: entry.product_id,
-      distributorId: entry.distributor_id || "",
-      companyId: entry.company_id || "",
+      supplierId: entry.supplier_id || "",
       invoiceNumber: entry.invoice_number || "",
       packs: String(Math.round(qty / ps) || 1),
       quantity: String(qty),
@@ -163,8 +167,7 @@ export default function Stock() {
   const columns = [
     { key: "created_at", header: "Date", cell: (s: StockPurchase) => <span className="font-mono text-[11px] text-text-secondary">{formatDate(s.created_at)}</span> },
     { key: "product_name", header: "Product", cell: (s: StockPurchase) => <span className="text-xs font-medium text-text-primary">{s.product_name}</span> },
-    { key: "company_name", header: "Company", cell: (s: StockPurchase) => <span className="text-[11px] text-text-secondary">{s.company_name || "\u2014"}</span> },
-    { key: "distributor_name", header: "Distributor", cell: (s: StockPurchase) => <span className="text-[11px] text-text-secondary">{s.distributor_name || "\u2014"}</span> },
+    { key: "supplier_name", header: "Supplier", cell: (s: StockPurchase) => <span className="text-[11px] text-text-secondary">{s.supplier_name || "\u2014"}</span> },
     { key: "invoice_number", header: "Invoice", cell: (s: StockPurchase) => <span className="font-mono text-[11px] text-text-secondary">{s.invoice_number || "\u2014"}</span> },
     { key: "quantity", header: "Qty", cell: (s: StockPurchase) => <span className="font-mono text-xs font-semibold">{s.quantity}</span> },
     { key: "purchase_price", header: "Cost", cell: (s: StockPurchase) => <span className="font-mono text-xs">{formatCurrency(s.purchase_price)}</span> },
@@ -192,7 +195,7 @@ export default function Stock() {
   return (
     <div>
       <PageHeader title="Stock / Purchases" description="Track inventory purchases and stock levels" action={{ label: "New Purchase", onClick: openAdd }} />
-      
+
       <div className="mb-5">
         <Card>
           <CardContent className="p-4">
@@ -214,7 +217,7 @@ export default function Stock() {
       <div className="flex items-center gap-2 mb-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary" />
-          <Input placeholder="Search by product, company, distributor, invoice..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          <Input placeholder="Search by product, supplier, invoice..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
         <div className="flex-1" />
         <button
@@ -250,32 +253,21 @@ export default function Stock() {
             </div>
             <div className="space-y-1">
               <Label>Product</Label>
-                <SearchableSelect
-                  options={products.map((p: Product) => ({ value: p.id, label: `${p.name} — ${p.category || "No Category"}` }))}
-                  value={form.productId}
-                  onChange={(v) => setForm({ ...form, productId: v })}
-                  placeholder="Select product"
-                />
+              <SearchableSelect
+                options={products.map((p: Product) => ({ value: p.id, label: `${p.name} — ${p.category || "No Category"}` }))}
+                value={form.productId}
+                onChange={(v) => setForm({ ...form, productId: v })}
+                placeholder="Select product"
+              />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label>Company</Label>
-                <SearchableSelect
-                  options={companies.map((c: Company) => ({ value: c.id, label: c.name }))}
-                  value={form.companyId}
-                  onChange={(v) => setForm({ ...form, companyId: v })}
-                  placeholder="Select company"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>Distributor</Label>
-                <SearchableSelect
-                  options={distributors.map((d: Distributor) => ({ value: d.id, label: d.name }))}
-                  value={form.distributorId}
-                  onChange={(v) => setForm({ ...form, distributorId: v })}
-                  placeholder="Select distributor"
-                />
-              </div>
+            <div className="space-y-1">
+              <Label>Supplier</Label>
+              <SearchableSelect
+                options={suppliers.map((s: Supplier) => ({ value: s.id, label: s.name }))}
+                value={form.supplierId}
+                onChange={(v) => setForm({ ...form, supplierId: v })}
+                placeholder="Select supplier"
+              />
             </div>
             <div className="space-y-1">
               <Label>Invoice Number</Label>

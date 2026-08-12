@@ -98,6 +98,7 @@ export default function CustomerDetail() {
   }
 
   const purchaseColumns = [
+    { key: "invoice_number", header: "Invoice No", cell: (s: Sale) => <span className="font-mono text-xs text-text-secondary">{s.invoice_number || s.id.slice(0, 8)}</span> },
     { key: "date", header: "Date", cell: (s: Sale) => <span className="font-mono text-xs text-text-secondary">{formatDate(s.created_at)}</span> },
     { key: "items", header: "Items", cell: (s: Sale) => <span className="text-text-secondary">{s.items?.length ?? 0} items</span> },
     { key: "total", header: "Total", cell: (s: Sale) => <span className="font-mono font-medium">{formatCurrency(s.total)}</span> },

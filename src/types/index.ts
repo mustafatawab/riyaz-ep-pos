@@ -77,6 +77,7 @@ export interface CustomerInput {
 
 export interface Sale {
   id: string;
+  invoice_number?: string;
   customer_id?: string;
   customer_name?: string;
   subtotal: number;
@@ -152,10 +153,8 @@ export interface StockPurchase {
   id: string;
   product_id: string;
   product_name?: string;
-  distributor_id?: string;
-  distributor_name?: string;
-  company_id?: string;
-  company_name?: string;
+  supplier_id?: string;
+  supplier_name?: string;
   invoice_number: string;
   quantity: number;
   purchase_price: number;
@@ -168,8 +167,7 @@ export interface StockPurchase {
 
 export interface StockInput {
   productId: string;
-  distributorId?: string;
-  companyId?: string;
+  supplierId?: string;
   invoiceNumber?: string;
   purchasePrice?: number;
   salePrice?: number;
@@ -177,33 +175,17 @@ export interface StockInput {
   expiry?: string;
 }
 
-export interface Distributor {
-  id: string;
-  name: string;
-  phone: string;
-  company_id?: string;
-  company_name?: string;
-  created_at: string;
-  product_count?: number;
-}
-
-export interface DistributorInput {
-  name: string;
-  phone: string;
-  companyId?: string;
-}
-
-export interface Company {
+export interface Supplier {
   id: string;
   name: string;
   phone: string;
   address: string;
   second_number: string;
   created_at: string;
-  product_count?: number;
+  stock_count?: number;
 }
 
-export interface CompanyInput {
+export interface SupplierInput {
   name: string;
   phone: string;
   address?: string;
@@ -213,6 +195,7 @@ export interface CompanyInput {
 export interface ReturnEntry {
   id: string;
   sale_id: string;
+  invoice_number?: string;
   customer_name?: string;
   refund_amount: number;
   reason: string;

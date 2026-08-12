@@ -186,7 +186,7 @@ td{
 </div>
 
 <div class="info">
-    <div><span class="bold">Invoice #: ${sale.id ?? ""}</span></div>
+    <div><span class="bold">Invoice #: ${sale.invoice_number || sale.id || ""}</span></div>
     <div><span class="bold">Date: ${dateStr} ${timeStr}</span></div>
     <div><span class="bold">Customer Name: ${
       sale.customer_name || "Walk-in Customer"
@@ -354,11 +354,11 @@ tbody tr:nth-child(even) { background: #fafafa; }
   </div>
   <div class="header-right">
     <div class="inv-label">INVOICE</div>
-    <div class="inv-id">#${sale.id ? sale.id.slice(0, 8) : "000000"}</div>
+    <div class="inv-id">#${sale.invoice_number || (sale.id ? sale.id.slice(0, 8) : "000000")}</div>
   </div>
 </div>
 <div class="info">
-<div><span class="lbl">Invoice:</span> ${sale.id || "N/A"}<br><span class="lbl">Date:</span> ${dateStr}</div>
+<div><span class="lbl">Invoice:</span> ${sale.invoice_number || sale.id || "N/A"}<br><span class="lbl">Date:</span> ${dateStr}</div>
 <div style="text-align:right">
 ${sale.customer_name ? `<span class="lbl">Customer:</span> ${sale.customer_name}<br>` : ""}
 <span class="lbl">Items:</span> ${items.length} (${totalQty} units)
@@ -479,7 +479,7 @@ table.items tbody tr:last-child td { border-bottom: none; }
   </div>
   <div class="badge">
     <h2>INVOICE</h2>
-    <div class="badge-id">#${sale.id ? sale.id.slice(0, 8) : "000000"}</div>
+    <div class="badge-id">#${sale.invoice_number || (sale.id ? sale.id.slice(0, 8) : "000000")}</div>
   </div>
 </div>
 
@@ -735,7 +735,7 @@ function generateESCPOSReceipt(sale) {
     hour: "2-digit", minute: "2-digit",
   });
   parts.push(escposText("Date:      " + dateStr));
-  parts.push(escposText("Invoice:   " + (sale.id || "")));
+  parts.push(escposText("Invoice:   " + (sale.invoice_number || sale.id || "")));
   parts.push(escposText("Customer:  " + (sale.customer_name || "Walk-in Customer")));
   parts.push(escposLine("-", L));
 

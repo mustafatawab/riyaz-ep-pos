@@ -15,8 +15,7 @@ import Customers from "@/pages/Customers";
 import CustomerDetail from "@/pages/CustomerDetail";
 import Arrears from "@/pages/Arrears";
 import Stock from "@/pages/Stock";
-import Distributors from "@/pages/Distributors";
-import Companies from "@/pages/Companies";
+import Suppliers from "@/pages/Suppliers";
 import Returns from "@/pages/Returns";
 import Categories from "@/pages/Categories";
 import Barcodes from "@/pages/Barcodes";
@@ -71,8 +70,7 @@ function AppShell() {
               <Route path="/customers/:id" element={<AnimatedPage><CustomerDetail /></AnimatedPage>} />
               <Route path="/arrears" element={<AnimatedPage><Arrears /></AnimatedPage>} />
               <Route path="/stock" element={<AnimatedPage><Stock /></AnimatedPage>} />
-              <Route path="/distributors" element={<AnimatedPage><Distributors /></AnimatedPage>} />
-              <Route path="/companies" element={<AnimatedPage><Companies /></AnimatedPage>} />
+              <Route path="/suppliers" element={<AnimatedPage><Suppliers /></AnimatedPage>} />
               <Route path="/barcodes" element={<AnimatedPage><Barcodes /></AnimatedPage>} />
               <Route path="/returns" element={<AnimatedPage><Returns /></AnimatedPage>} />
               <Route path="/expenses" element={<AnimatedPage><Expenses /></AnimatedPage>} />

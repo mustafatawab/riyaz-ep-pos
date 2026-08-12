@@ -61,7 +61,7 @@ export default function Returns() {
   }, [invoiceSearch]);
 
   const filtered = returns.filter((r: ReturnEntry) =>
-    !search || r.sale_id.includes(search) || r.reason.toLowerCase().includes(search.toLowerCase())
+    !search || (r.invoice_number || "").toLowerCase().includes(search.toLowerCase()) || r.sale_id.includes(search) || r.reason.toLowerCase().includes(search.toLowerCase())
   );
 
   function selectSale(sale: Sale) {
@@ -78,7 +78,10 @@ export default function Returns() {
       setInvoiceSearch("");
       return;
     }
-    const exact = invoiceResults.find((s) => s.id.toLowerCase() === invoiceSearch.trim().toLowerCase());
+    const exact = invoiceResults.find((s) =>
+      (s.invoice_number || "").toLowerCase() === invoiceSearch.trim().toLowerCase()
+      || s.id.toLowerCase() === invoiceSearch.trim().toLowerCase()
+    );
     if (exact) {
       selectSale(exact);
       setInvoiceResults([]);
@@ -150,7 +153,7 @@ export default function Returns() {
 
   const columns = [
     { key: "created_at", header: "Date", cell: (r: ReturnEntry) => <span className="font-mono text-xs text-text-secondary">{formatDateTime(r.created_at)}</span> },
-    { key: "sale_id", header: "Sale ID", cell: (r: ReturnEntry) => <span className="font-mono text-xs text-text-secondary">{r.sale_id.slice(0, 8)}</span> },
+    { key: "sale_id", header: "Invoice No", cell: (r: ReturnEntry) => <span className="font-mono text-xs text-text-secondary">{r.invoice_number || r.sale_id.slice(0, 8)}</span> },
     { key: "customer_name", header: "Customer", cell: (r: ReturnEntry) => <span className="text-text-secondary">{r.customer_name || "—"}</span> },
     { key: "refund_amount", header: "Refund Amount", cell: (r: ReturnEntry) => <span className="font-mono font-medium text-danger">{formatCurrency(r.refund_amount)}</span> },
     { key: "reason", header: "Reason", cell: (r: ReturnEntry) => <span className="text-text-secondary">{r.reason}</span> },
@@ -164,10 +167,10 @@ export default function Returns() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary" />
           <Input placeholder="Search returns..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
-        <Button variant="outline" size="sm" onClick={() => downloadCSV(`returns_${new Date().toISOString().split("T")[0]}.csv`, ["Date","Sale ID","Customer","Refund Amount","Reason"], filtered.map((r: ReturnEntry) => [r.created_at, r.sale_id, r.customer_name || "", r.refund_amount, r.reason]))}>
+        <Button variant="outline" size="sm" onClick={() => downloadCSV(`returns_${new Date().toISOString().split("T")[0]}.csv`, ["Date","Invoice No","Customer","Refund Amount","Reason"], filtered.map((r: ReturnEntry) => [r.created_at, r.invoice_number || r.sale_id, r.customer_name || "", r.refund_amount, r.reason]))}>
           <Download className="h-4 w-4 mr-1" /> CSV
         </Button>
-        <Button variant="outline" size="sm" onClick={() => downloadPDF(`returns_${new Date().toISOString().split("T")[0]}.pdf`, "Returns List", ["Date","Sale ID","Customer","Refund Amount","Reason"], filtered.map((r: ReturnEntry) => [r.created_at, r.sale_id, r.customer_name || "", r.refund_amount, r.reason]))}>
+        <Button variant="outline" size="sm" onClick={() => downloadPDF(`returns_${new Date().toISOString().split("T")[0]}.pdf`, "Returns List", ["Date","Invoice No","Customer","Refund Amount","Reason"], filtered.map((r: ReturnEntry) => [r.created_at, r.invoice_number || r.sale_id, r.customer_name || "", r.refund_amount, r.reason]))}>
           <Download className="h-4 w-4 mr-1" /> PDF
         </Button>
       </div>
@@ -200,7 +203,7 @@ export default function Returns() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary" />
                 <Input
-                  placeholder="Search invoice ID, customer or product..."
+                  placeholder="Search invoice no, customer or product..."
                   value={invoiceSearch}
                   onChange={(e) => setInvoiceSearch(e.target.value)}
                   onKeyDown={handleInvoiceSearchKeyDown}
@@ -224,7 +227,7 @@ export default function Returns() {
                         className="w-full text-left px-3 py-2 hover:bg-surface-2 flex items-center justify-between gap-2 disabled:opacity-50"
                       >
                         <span className="flex items-center gap-2 min-w-0">
-                          <span className="font-mono text-xs">{s.id}</span>
+                          <span className="font-mono text-xs">{s.invoice_number || s.id}</span>
                           <span className="text-xs text-text-secondary truncate">{s.customer_name || "Walk-in"}</span>
                         </span>
                         <span className="flex items-center gap-2 shrink-0">
@@ -253,7 +256,7 @@ export default function Returns() {
                   <div className="rounded-lg border border-border p-3 text-sm">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-text-secondary shrink-0">Invoice:</span>
-                      <span className="font-mono font-medium truncate">{selectedSale.id}</span>
+                      <span className="font-mono font-medium truncate">{selectedSale.invoice_number || selectedSale.id}</span>
                     </div>
                     <div className="flex items-center justify-between gap-2 text-xs text-text-secondary mt-1">
                       <span className="truncate">{selectedSale.customer_name || "Walk-in"}</span>
@@ -382,7 +385,7 @@ export default function Returns() {
           {selectedReturn && (
             <div className="px-5 pb-5 space-y-3">
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div><span className="text-text-secondary">Sale ID:</span> <span className="font-mono">{selectedReturn.sale_id}</span></div>
+                <div><span className="text-text-secondary">Invoice No:</span> <span className="font-mono">{selectedReturn.invoice_number || selectedReturn.sale_id}</span></div>
                 <div><span className="text-text-secondary">Customer:</span> <span>{selectedReturn.customer_name || "—"}</span></div>
                 <div><span className="text-text-secondary">Date:</span> <span>{formatDateTime(selectedReturn.created_at)}</span></div>
                 <div><span className="text-text-secondary">Refund:</span> <span className="font-mono text-danger">{formatCurrency(selectedReturn.refund_amount)}</span></div>

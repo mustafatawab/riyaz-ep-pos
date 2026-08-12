@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
-  LayoutDashboard, ShoppingCart, Package, Boxes, Tags, Users, CreditCard,
-  Factory, Building2, Undo2, Wallet, BarChart3, Receipt, Barcode, Settings,
+  LayoutDashboard, ShoppingCart, Package, Boxes, Users, CreditCard,
+  Truck, Undo2, Wallet, BarChart3, Receipt, Barcode, Settings,
   LogOut, PanelLeftClose,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -15,8 +15,7 @@ const navItems = [
   { href: "/products", label: "Products", icon: Package },
   { href: "/barcodes", label: "Barcodes", icon: Barcode },
   { href: "/stock", label: "Stock", icon: Boxes },
-  { href: "/distributors", label: "Distributors", icon: Factory },
-  { href: "/companies", label: "Companies", icon: Building2 },
+  { href: "/suppliers", label: "Suppliers", icon: Truck },
   { href: "/customers", label: "Customers", icon: Users },
   { href: "/invoices", label: "Invoices", icon: Receipt },
   { href: "/arrears", label: "Arrears", icon: CreditCard },
