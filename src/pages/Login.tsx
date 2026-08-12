@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Eye, EyeOff, Lock, Sun, Moon } from "lucide-react";
 import { api } from "@/lib/api";
-import logoSrc from "@/asset/image/logo.png";
 
 export default function Login() {
   const { login } = useAuth();
@@ -29,7 +28,7 @@ export default function Login() {
     const next = !dark;
     setDark(next);
     document.documentElement.classList.toggle("dark", next);
-    try { localStorage.setItem("faraz_theme", next ? "dark" : "light"); } catch {}
+    try { localStorage.setItem("riyaz_theme", next ? "dark" : "light"); } catch {}
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -94,11 +93,11 @@ export default function Login() {
         >
           <div className="block lg:hidden mb-8">
             <div className="flex items-center gap-3 mb-3">
-              <div className="h-9 w-9 rounded-lg flex items-center justify-center">
-                <img src={logoSrc} alt="" className="h-6 w-6 object-cover" />
+              <div className="h-9 px-2.5 rounded-lg flex items-center justify-center bg-accent/10">
+                <span className="text-sm font-display font-bold text-accent tracking-tight">Riyaz EP</span>
               </div>
               <div>
-                <h1 className="text-base font-display font-semibold text-text-primary tracking-tight">Faraz Pharmacy</h1>
+                <h1 className="text-base font-display font-semibold text-text-primary tracking-tight">Riyaz Enterprise</h1>
                 <p className="text-[11px] text-text-secondary">Sign in to your account</p>
               </div>
             </div>
@@ -177,12 +176,12 @@ export default function Login() {
           transition={{ duration: 0.4, ease: "easeOut" }}
           className="relative z-10 text-center px-8"
         >
-          <div className="w-32 h-32 p-5 mx-auto mb-6 rounded-xl bg-white/90 flex items-center justify-center">
-            <img src={logoSrc} alt="Faraz Pharmacy" className="w-full h-full object-cover" />
+          <div className="mx-auto mb-6 rounded-xl bg-white/90 px-6 py-5 inline-flex items-center justify-center">
+            <span className="text-2xl font-display font-bold text-[#0D9488] tracking-tight">Riyaz EP</span>
           </div>
-          <h2 className="text-2xl font-display font-bold text-white tracking-tight">Faraz Pharmacy</h2>
+          <h2 className="text-2xl font-display font-bold text-white tracking-tight">Riyaz Enterprise</h2>
           <p className="text-sm text-white/70 mt-2 max-w-xs mx-auto leading-relaxed">
-            Complete pharmacy management solution
+            Complete business management solution
           </p>
         </motion.div>
       </div>

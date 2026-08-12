@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { loadConfig, saveConfig, getBackupsDir } from "./config.js";
+import { getDbPath, getDb, reloadDb } from "./db.js";
 
 import {
   printReceipt,
@@ -138,13 +139,16 @@ function registerHandlers() {
     try {
       const dir = getBackupsDir();
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      const dbPath = getDbPath();
+      if (!fs.existsSync(dbPath)) throw new Error("Database file not found");
+      getDb().pragma("wal_checkpoint(TRUNCATE)");
       const timestamp = new Date()
         .toISOString()
         .replace(/[:.]/g, "-")
         .slice(0, 19);
-      const backupName = `faraz-pharmacy-backup-${timestamp}.db`;
+      const backupName = `riyaz-enterprise-backup-${timestamp}.db`;
       const backupPath = path.join(dir, backupName);
-      fs.writeFileSync(backupPath, "");
+      fs.copyFileSync(dbPath, backupPath);
       const stat = fs.statSync(backupPath);
       return {
         success: true,
@@ -199,6 +203,10 @@ function registerHandlers() {
     try {
       const backupPath = path.join(getBackupsDir(), name);
       if (!fs.existsSync(backupPath)) throw new Error("Backup file not found");
+      getDb().pragma("wal_checkpoint(TRUNCATE)");
+      getDb().close();
+      fs.copyFileSync(backupPath, getDbPath());
+      reloadDb();
       return { success: true };
     } catch (err) {
       return { success: false, error: err.message };

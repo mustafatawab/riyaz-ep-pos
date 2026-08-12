@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";  
 
-const DATA_DIR = path.join(os.homedir(), ".faraz-pharmacy");
+const DATA_DIR = path.join(os.homedir(), ".riyaz-enterprise");
 const CONFIG_PATH = path.join(DATA_DIR, "config.json");
 
 function ensureDir() {
@@ -20,7 +20,7 @@ function loadConfig() {
 
 function getBackupsDir() {
   const cfg = loadConfig();
-  return cfg.backupDirectory || path.join(os.homedir(), ".faraz-pharmacy", "backups");
+  return cfg.backupDirectory || path.join(os.homedir(), ".riyaz-enterprise", "backups");
 }
 
 function saveConfig(config) {

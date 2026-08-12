@@ -44,6 +44,7 @@ export interface Product {
 export interface ProductInput {
   barcode: string;
   name: string;
+  company?: string;
   distributorId?: string;
   salePrice?: number;
   purchasePrice: number;
@@ -86,6 +87,7 @@ export interface Sale {
   status: string;
   created_at: string;
   return_count?: number;
+  item_count?: number;
   items?: SaleItem[];
 }
 

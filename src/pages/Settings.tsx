@@ -346,7 +346,7 @@ export default function Settings() {
                   <div className="space-y-2">
                     {backups.map((backup: BackupEntry) => {
                       const label = backup.name
-                        .replace(/^faraz-pharmacy-backup-/, "")
+                        .replace(/^riyaz-enterprise-backup-/, "")
                         .replace(/\.db$/, "")
                         .replace(/T/, " ")
                         .replace(/-/g, ":");

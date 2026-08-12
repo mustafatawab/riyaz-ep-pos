@@ -1,16 +1,17 @@
 {
-  "name": "faraz-pharmacy-desktop",
+  "name": "riyaz-enterprise-desktop",
   "version": "1.0.1",
-  "description": "Faraz Pharmacy POS - Desktop Application",
-  "author": "Faraz Pharmacy",
-  "repository": "mustafatawab/faraz-pharmacy",
+  "description": "Riyaz Enterprise POS - Desktop Application",
+  "author": "Riyaz Enterprise",
+  "repository": "riyaz-enterprise",
   "type": "module",
   "main": "electron/main.js",
   "scripts": {
     "dev": "concurrently -k \"npm run dev:renderer\" \"npm run dev:electron\"",
     "dev:renderer": "vite",
     "dev:electron": "nodemon --watch electron -e js --exec \"electron . --dev\"",
-    "build": "vite build && electron-builder",
+    "rebuild": "electron-rebuild -f -w better-sqlite3",
+    "build": "npm run rebuild && vite build && electron-builder",
     "build:renderer": "vite build",
     "preview": "vite preview"
   },
@@ -25,6 +26,7 @@
     "@radix-ui/react-slot": "^1.1.0",
     "@radix-ui/react-tabs": "^1.1.0",
     "@tanstack/react-query": "^5.0.0",
+    "better-sqlite3": "^11.10.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
     "framer-motion": "^12.0.0",
@@ -54,14 +56,17 @@
     "vite": "^6.0.0"
   },
   "build": {
-    "appId": "com.farazpharmacy.pos",
-    "productName": "Faraz Pharmacy",
+    "appId": "com.riyazenterprise.pos",
+    "productName": "Riyaz Enterprise",
     "directories": {
       "output": "dist-electron"
     },
     "files": [
       "electron/**/*",
       "dist/**/*"
+    ],
+    "asarUnpack": [
+      "node_modules/better-sqlite3/**"
     ],
     "icon": "src/asset/image/logo.png",
     "mac": {

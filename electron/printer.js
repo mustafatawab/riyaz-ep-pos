@@ -5,16 +5,6 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const logoPath = `file://${path.join(__dirname, "image", "logo.png").replace(/\\/g, "/")}`;
-const logoBase64 = (() => {
-  try {
-    const buf = fs.readFileSync(path.join(__dirname, "image", "logo.png"));
-    return `data:image/png;base64,${buf.toString("base64")}`;
-  } catch {
-    return "";
-  }
-})();
-
 const jsBarcodeSource = (() => {
   try {
     return fs.readFileSync(path.join(__dirname, "vendor", "JsBarcode.all.min.js"), "utf-8");
@@ -190,7 +180,7 @@ td{
 <body>
 
 <div class="header center">
-    <h1>FARAZ PHARMACY</h1>
+    <h1>RIYAZ ENTERPRISE</h1>
     <p>Beside Luqman Clinical Laboratory Barikot, Swat</p>
     <p>Phone: 0346-9383792 | 0344-9006940</p>
 </div>
@@ -324,7 +314,7 @@ body {
 }
 .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 3px solid #0D9488; padding-bottom: 14px; }
 .header-left { display: flex; align-items: center; gap: 10px; }
-.header-logo { width: 44px; height: 44px; border-radius: 8px; object-fit: contain; }
+.header-logo { display: inline-flex; align-items: center; justify-content: center; height: 44px; padding: 0 10px; border-radius: 8px; background: #0D9488; color: #fff; font-size: 12px; font-weight: 800; letter-spacing: 0.02em; }
 .header h1 { font-size: 24px; letter-spacing: 1px; color: #0D9488; font-weight: 800; margin: 0; }
 .header p { font-size: 11px; color: #666; margin-top: 2px; }
 .header .addr { font-size: 10px; color: #888; margin-top: 1px; }
@@ -355,10 +345,10 @@ tbody tr:nth-child(even) { background: #fafafa; }
 </style></head><body>
 <div class="header">
   <div class="header-left">
-    ${logoBase64 ? `<img src="${logoBase64}" class="header-logo" alt="">` : ""}
+    <div class="header-logo">Riyaz EP</div>
     <div>
-      <h1>FARAZ PHARMACY</h1>
-      <p>Your Trusted Pharmacy &mdash; Quality Care for Everyone</p>
+      <h1>RIYAZ ENTERPRISE</h1>
+      <p>Your Trusted Business Partner</p>
       <div class="addr">Barikot, Swat KPK &bull; Phone: 03469383792</div>
     </div>
   </div>
@@ -387,7 +377,7 @@ ${sale.discount > 0 ? `<tr><td>Discount</td><td>-${sale.discount.toFixed(0)}</td
 <tr><td>Arrears</td><td>${(sale.customer_total_arrears || 0).toFixed(0)}</td></tr>
 </table>
 ${sale.status === "partial" ? '<div class="status-a4 partial">PARTIAL PAYMENT</div>' : ""}
-<div class="footer"><p>Thank you for your visit! &bull; Powered by Faraz Pharmacy</p></div>
+<div class="footer"><p>Thank you for your visit! &bull; Powered by Riyaz Enterprise</p></div>
 </body></html>`;
 }
 
@@ -420,7 +410,7 @@ body {
   padding-bottom: 10px; border-bottom: 2.5px solid #0D9488; margin-bottom: 12px;
 }
 .brand { display: flex; align-items: center; gap: 8px; }
-.brand-logo { width: 36px; height: 36px; border-radius: 6px; object-fit: contain; }
+.brand-logo { display: inline-flex; align-items: center; justify-content: center; height: 36px; padding: 0 8px; border-radius: 6px; background: #0D9488; color: #fff; font-size: 11px; font-weight: 800; letter-spacing: 0.02em; }
 .brand-name { font-size: 17px; font-weight: 800; color: #0D9488; letter-spacing: -0.3px; }
 .brand-sub { font-size: 8.5px; color: #666; margin-top: 1px; }
 .brand-addr { font-size: 8px; color: #888; }
@@ -480,9 +470,9 @@ table.items tbody tr:last-child td { border-bottom: none; }
 
 <div class="header">
   <div class="brand">
-    ${logoBase64 ? `<img src="${logoBase64}" class="brand-logo" alt="">` : ""}
+    <div class="brand-logo">Riyaz EP</div>
     <div>
-      <div class="brand-name">FARAZ PHARMACY</div>
+      <div class="brand-name">RIYAZ ENTERPRISE</div>
       <div class="brand-sub">Quality Care For Everyone</div>
       <div class="brand-addr">Barikot, Swat KPK</div>
     </div>
@@ -552,7 +542,7 @@ table.items tbody tr:last-child td { border-bottom: none; }
   </div>
 </div>
 
-<div class="footer">Thank you for choosing Faraz Pharmacy &bull; Powered by FarSight System</div>
+<div class="footer">Thank you for choosing Riyaz Enterprise</div>
 </body>
 </html>`;
 }
@@ -605,7 +595,7 @@ td:last-child { text-align: right; }
 .ftr { text-align: center; font-size: ${isThermal ? "10px" : "11px"}; margin-top: 6px; color: #555; font-weight: 600; }
 </style></head><body>
 <div class="receipt">
-<h1>FARAZ PHARMACY</h1>
+<h1>RIYAZ ENTERPRISE</h1>
 <p class="sub">${dateStr}</p>
 <p class="badge">** RETURN RECEIPT **</p>
 <p class="sub">Sale: ${sale?.id?.slice(0, 8) || "N/A"}</p>
@@ -621,7 +611,7 @@ td:last-child { text-align: right; }
 <p class="sub" style="margin-top:6px">Reason: ${returnData.reason}</p>
 <hr>
 <p class="ftr">Return processed successfully</p>
-<p class="ftr">--- Powered by Faraz Pharmacy ---</p>
+<p class="ftr">--- Powered by Riyaz Enterprise ---</p>
 </div>
 </body></html>`;
 }
@@ -732,7 +722,7 @@ function generateESCPOSReceipt(sale) {
   parts.push(escposAlign(1));
   parts.push(escposBold(1));
   parts.push(escposCharSize(1, 0));
-  parts.push(escposText("Faraz Medical Store"));
+  parts.push(escposText("Riyaz Enterprise"));
   parts.push(escposCharSize(0, 0));
   parts.push(escposBold(0));
   parts.push(escposText("Beside Noman Clinical Laboratory"));
@@ -820,7 +810,7 @@ function generateESCPOSReturnReceipt(returnData, sale) {
   parts.push(escposAlign(1));
   parts.push(escposBold(1));
   parts.push(escposCharSize(1, 0));
-  parts.push(escposText("FARAZ PHARMACY"));
+  parts.push(escposText("RIYAZ ENTERPRISE"));
   parts.push(escposCharSize(0, 0));
   parts.push(escposBold(0));
   parts.push(escposText(dateStr));
@@ -1051,7 +1041,7 @@ function generateHTML(sale, paperSize) {
 
 function writeTempFile(content, ext) {
   const tmpDir = app.getPath("temp");
-  const filePath = path.join(tmpDir, `faraz-receipt-${Date.now()}.${ext}`);
+  const filePath = path.join(tmpDir, `riyaz-receipt-${Date.now()}.${ext}`);
   fs.writeFileSync(filePath, content, "utf-8");
   return filePath;
 }

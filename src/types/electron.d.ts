@@ -53,6 +53,7 @@ export interface GDriveConfig {
 declare global {
   interface Window {
     electronAPI: ElectronAPI;
+    dbInvoke: (method: string, ...args: unknown[]) => Promise<{ ok: boolean; data?: unknown; error?: string }>;
     saveConfig: (config: { mode: string; serverUrl?: string }) => Promise<{ success: boolean }>;
     getServerIp: () => Promise<string>;
     appConfig: AppConfig;

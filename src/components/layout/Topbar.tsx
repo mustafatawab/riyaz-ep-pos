@@ -45,7 +45,7 @@ export default function Topbar() {
     const next = !dark;
     setDark(next);
     document.documentElement.classList.toggle("dark", next);
-    try { localStorage.setItem("faraz_theme", next ? "dark" : "light"); } catch {}
+    try { localStorage.setItem("riyaz_theme", next ? "dark" : "light"); } catch {}
   }
 
   const { isOnline, isInitialCheck } = useServerConnection();

@@ -8,7 +8,6 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
-import logoSrc from "@/asset/image/logo.png";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -45,8 +44,10 @@ export default function Sidebar() {
         "flex items-center h-12 relative",
         collapsed ? "justify-center" : "px-3 gap-2.5"
       )}>
-        <div className="flex items-center justify-center rounded-lg h-7 w-7 bg-sidebar-primary/10 shrink-0 overflow-hidden">
-          <img src={logoSrc} alt="Faraz Pharmacy" className="h-5 w-5 object-contain" />
+        <div className="flex items-center justify-center rounded-lg h-7 px-1.5 bg-sidebar-primary/10 shrink-0 overflow-hidden">
+          <span className="text-[10px] font-display font-bold text-sidebar-primary tracking-tight whitespace-nowrap">
+            {collapsed ? "RE" : "Riyaz EP"}
+          </span>
         </div>
         <AnimatePresence>
           {!collapsed && (
@@ -56,7 +57,7 @@ export default function Sidebar() {
               exit={{ opacity: 0, width: 0 }}
               className="min-w-0 overflow-hidden"
             >
-              <p className="text-xs font-display font-semibold text-sidebar-foreground truncate tracking-tight">Faraz Pharmacy</p>
+              <p className="text-xs font-display font-semibold text-sidebar-foreground truncate tracking-tight">Riyaz Enterprise</p>
               <p className="text-[8px] text-sidebar-foreground/40 truncate tracking-widest uppercase">Management</p>
             </motion.div>
           )}

@@ -6,155 +6,134 @@ import type {
 } from "@/types";
 import type { BackupResult, BackupEntry, GDriveConfig } from "@/types/electron";
 
-function getApiUrl(): string {
-  if (window.appConfig?.serverUrl) return window.appConfig.serverUrl;
-  return import.meta.env.VITE_API_URL || "http://localhost:3001";
-}
-
-function getToken(): string | null {
-  return localStorage.getItem("faraz_access_token");
-}
-
-async function fetchJson<T>(method: string, path: string, body?: unknown, auth = true): Promise<T> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (auth) {
-    const token = getToken();
-    if (token) headers["Authorization"] = `Bearer ${token}`;
+async function call<T>(method: string, ...args: unknown[]): Promise<T> {
+  if (!window.dbInvoke) {
+    throw new Error("Desktop database is not available");
   }
-  const res = await fetch(`${getApiUrl()}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  const res = await window.dbInvoke(method, ...args);
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-    throw new Error(err.error || `API error: ${res.status}`);
+    throw new Error(res.error || "Database error");
   }
-  return res.json();
+  return res.data as T;
 }
 
 const api = {
   auth: {
     login: (username: string, password: string): Promise<{
-      accessToken: string; refreshToken: string; csrfToken: string;
       user: { id: string; username: string; role: string };
-    }> =>
-      fetchJson("POST", "/api/auth/login", { username, password }, false),
-    refresh: (refreshToken: string): Promise<{
-      accessToken: string; refreshToken: string; csrfToken: string;
-      user: { id: string; username: string; role: string };
-    }> =>
-      fetchJson("POST", "/api/auth/refresh", { refreshToken }, false),
-    logout: (accessToken: string): Promise<{ success: boolean }> =>
-      fetchJson("POST", "/api/auth/logout", { accessToken }),
+    }> => call("auth.login", username, password),
+    logout: (): Promise<{ success: boolean }> => call("auth.logout"),
     verifyPassword: (password: string): Promise<{ valid: boolean }> =>
-      fetchJson("POST", "/api/auth/verify-password", { password }, false),
+      call("auth.verifyPassword", password),
     generateRecoveryKey: (): Promise<{ phrase: string }> =>
-      fetchJson("POST", "/api/auth/generate-recovery-key", undefined, false),
+      call("auth.generateRecoveryKey"),
     recoverPassword: (phrase: string, newPassword: string): Promise<{ success: boolean; error?: string }> =>
-      fetchJson("POST", "/api/auth/recover-password", { phrase, newPassword }, false),
+      call("auth.recoverPassword", phrase, newPassword),
   },
   products: {
-    list: (): Promise<Product[]> => fetchJson("GET", "/api/products"),
-    search: (q: string): Promise<Product[]> => fetchJson("GET", `/api/products/search?q=${encodeURIComponent(q)}`),
-    getByBarcode: (b: string): Promise<Product | null> => fetchJson("GET", `/api/products/barcode/${encodeURIComponent(b)}`),
-    create: (p: ProductInput): Promise<Product> => fetchJson("POST", "/api/products", p),
-    update: (id: string, p: ProductInput): Promise<Product> => fetchJson("PUT", `/api/products/${id}`, p),
-    delete: (id: string): Promise<{ success: boolean }> => fetchJson("DELETE", `/api/products/${id}`),
-    archive: (id: string): Promise<{ success: boolean }> => fetchJson("DELETE", `/api/products/${id}`),
-    restore: (id: string): Promise<{ success: boolean }> => fetchJson("POST", `/api/products/${id}/restore`),
-    listAll: (): Promise<Product[]> => fetchJson("GET", "/api/products?includeArchived=true"),
+    list: (): Promise<Product[]> => call("products.list"),
+    search: (q: string): Promise<Product[]> => call("products.search", q),
+    getByBarcode: (b: string): Promise<Product | null> => call("products.getByBarcode", b),
+    create: (p: ProductInput): Promise<Product> => call("products.create", p),
+    update: (id: string, p: ProductInput): Promise<Product> => call("products.update", id, p),
+    delete: (id: string): Promise<{ success: boolean }> => call("products.delete", id),
+    archive: (id: string): Promise<{ success: boolean }> => call("products.archive", id),
+    restore: (id: string): Promise<{ success: boolean }> => call("products.restore", id),
+    listAll: (): Promise<Product[]> => call("products.listAll"),
   },
   sales: {
-    create: (s: SaleInput): Promise<Sale> => fetchJson("POST", "/api/sales", s),
-    listRecent: (l = 10): Promise<Sale[]> => fetchJson("GET", `/api/sales/recent?limit=${l}`),
-    getById: (id: string): Promise<Sale | null> => fetchJson("GET", `/api/sales/${id}`),
-    search: (q: string): Promise<Sale[]> => fetchJson("GET", `/api/sales/search?q=${encodeURIComponent(q)}`),
-    listByDate: (dateStr: string): Promise<Sale[]> => {
-      const tzOffset = -new Date().getTimezoneOffset();
-      return fetchJson("GET", `/api/sales/date/${dateStr}?tzOffset=${tzOffset}`);
-    },
-    listAll: (opts?: { search?: string; dateFrom?: string; dateTo?: string }): Promise<Sale[]> => {
-      const params = new URLSearchParams();
-      if (opts?.search) params.set("search", opts.search);
-      if (opts?.dateFrom) params.set("dateFrom", opts.dateFrom);
-      if (opts?.dateTo) params.set("dateTo", opts.dateTo);
-      params.set("tzOffset", String(-new Date().getTimezoneOffset()));
-      return fetchJson("GET", `/api/sales${params.toString() ? `?${params.toString()}` : ""}`);
-    },
+    create: (s: SaleInput): Promise<Sale> => call("sales.create", s),
+    listRecent: (l = 10): Promise<Sale[]> => call("sales.listRecent", l),
+    getById: (id: string): Promise<Sale | null> => call("sales.getById", id),
+    search: (q: string): Promise<Sale[]> => call("sales.search", q),
+    listByDate: (dateStr: string): Promise<Sale[]> => call("sales.listByDate", dateStr),
+    listAll: (opts?: { search?: string; dateFrom?: string; dateTo?: string }): Promise<Sale[]> =>
+      call("sales.listAll", opts),
   },
   customers: {
-    list: (): Promise<Customer[]> => fetchJson("GET", "/api/customers"),
-    search: (q: string): Promise<Customer[]> => fetchJson("GET", `/api/customers/search?q=${encodeURIComponent(q)}`),
-    create: (c: CustomerInput): Promise<Customer> => fetchJson("POST", "/api/customers", c),
-    update: (id: string, c: CustomerInput): Promise<Customer> => fetchJson("PUT", `/api/customers/${id}`, c),
+    list: (): Promise<Customer[]> => call("customers.list"),
+    search: (q: string): Promise<Customer[]> => call("customers.search", q),
+    create: (c: CustomerInput): Promise<Customer> => call("customers.create", c),
+    update: (id: string, c: CustomerInput): Promise<Customer> => call("customers.update", id, c),
     delete: (id: string, opts?: { force?: boolean }): Promise<{ success: boolean }> =>
-      fetchJson("DELETE", `/api/customers/${id}${opts?.force ? "?force=true" : ""}`),
-    getById: (id: string): Promise<Customer | null> => fetchJson("GET", `/api/customers/${id}`),
+      call("customers.delete", id, opts),
+    getById: (id: string): Promise<Customer | null> => call("customers.getById", id),
   },
   arrears: {
-    list: (status?: string): Promise<Arrear[]> => fetchJson("GET", `/api/arrears${status ? `?status=${status}` : ""}`),
-    create: (a: ArrearInput): Promise<Arrear> => fetchJson("POST", "/api/arrears", a),
+    list: (status?: string): Promise<Arrear[]> => call("arrears.list", status),
+    create: (a: ArrearInput): Promise<Arrear> => call("arrears.create", a),
     recordPayment: (id: string, amount: number, password: string): Promise<{ arrear: Arrear; paymentSaleId: string }> =>
-      fetchJson("POST", `/api/arrears/${id}/pay`, { amount, password }),
-    delete: (id: string): Promise<{ success: boolean }> => fetchJson("DELETE", `/api/arrears/${id}`),
+      call("arrears.recordPayment", id, amount, password),
+    delete: (id: string): Promise<{ success: boolean }> => call("arrears.delete", id),
     settle: (id: string, password: string): Promise<{ arrear: Arrear; paymentSaleId: string }> =>
-      fetchJson("POST", `/api/arrears/${id}/settle`, { password }),
+      call("arrears.settle", id, password),
   },
   stock: {
-    list: (): Promise<StockPurchase[]> => fetchJson("GET", "/api/stock"),
-    create: (p: StockInput): Promise<StockPurchase> => fetchJson("POST", "/api/stock", p),
-    update: (id: string, p: StockInput): Promise<StockPurchase> => fetchJson("PUT", `/api/stock/${id}`, p),
-    delete: (id: string): Promise<{ success: boolean }> => fetchJson("DELETE", `/api/stock/${id}`),
+    list: (): Promise<StockPurchase[]> => call("stock.list"),
+    create: (p: StockInput): Promise<StockPurchase> => call("stock.create", p),
+    update: (id: string, p: StockInput): Promise<StockPurchase> => call("stock.update", id, p),
+    delete: (id: string): Promise<{ success: boolean }> => call("stock.delete", id),
   },
   distributors: {
-    list: (): Promise<Distributor[]> => fetchJson("GET", "/api/distributors"),
-    create: (d: DistributorInput): Promise<Distributor> => fetchJson("POST", "/api/distributors", d),
-    update: (id: string, d: DistributorInput): Promise<Distributor> => fetchJson("PUT", `/api/distributors/${id}`, d),
-    delete: (id: string): Promise<{ success: boolean }> => fetchJson("DELETE", `/api/distributors/${id}`),
+    list: (): Promise<Distributor[]> => call("distributors.list"),
+    create: (d: DistributorInput): Promise<Distributor> => call("distributors.create", d),
+    update: (id: string, d: DistributorInput): Promise<Distributor> => call("distributors.update", id, d),
+    delete: (id: string): Promise<{ success: boolean }> => call("distributors.delete", id),
   },
   companies: {
-    list: (): Promise<Company[]> => fetchJson("GET", "/api/companies"),
-    create: (c: CompanyInput): Promise<Company> => fetchJson("POST", "/api/companies", c),
-    update: (id: string, c: CompanyInput): Promise<Company> => fetchJson("PUT", `/api/companies/${id}`, c),
-    delete: (id: string): Promise<{ success: boolean }> => fetchJson("DELETE", `/api/companies/${id}`),
+    list: (): Promise<Company[]> => call("companies.list"),
+    create: (c: CompanyInput): Promise<Company> => call("companies.create", c),
+    update: (id: string, c: CompanyInput): Promise<Company> => call("companies.update", id, c),
+    delete: (id: string): Promise<{ success: boolean }> => call("companies.delete", id),
   },
   returns: {
-    list: (): Promise<ReturnEntry[]> => fetchJson("GET", "/api/returns"),
-    getById: (id: string): Promise<ReturnEntry> => fetchJson("GET", `/api/returns/${id}`),
-    create: (r: ReturnInput): Promise<ReturnEntry> => fetchJson("POST", "/api/returns", r),
+    list: (): Promise<ReturnEntry[]> => call("returns.list"),
+    getById: (id: string): Promise<ReturnEntry | null> => call("returns.getById", id),
+    create: (r: ReturnInput): Promise<ReturnEntry> => call("returns.create", r),
   },
   expenses: {
-    list: (): Promise<Expense[]> => fetchJson("GET", "/api/expenses"),
-    create: (e: ExpenseInput): Promise<Expense> => fetchJson("POST", "/api/expenses", e),
-    update: (id: string, e: ExpenseInput): Promise<Expense> => fetchJson("PUT", `/api/expenses/${id}`, e),
-    delete: (id: string): Promise<{ success: boolean }> => fetchJson("DELETE", `/api/expenses/${id}`),
+    list: (): Promise<Expense[]> => call("expenses.list"),
+    create: (e: ExpenseInput): Promise<Expense> => call("expenses.create", e),
+    update: (id: string, e: ExpenseInput): Promise<Expense> => call("expenses.update", id, e),
+    delete: (id: string): Promise<{ success: boolean }> => call("expenses.delete", id),
   },
   categories: {
-    list: (): Promise<Category[]> => fetchJson("GET", "/api/categories"),
-    create: (c: CategoryInput): Promise<Category> => fetchJson("POST", "/api/categories", c),
-    update: (id: string, c: CategoryInput): Promise<Category> => fetchJson("PUT", `/api/categories/${id}`, c),
-    delete: (id: string): Promise<{ success: boolean }> => fetchJson("DELETE", `/api/categories/${id}`),
+    list: (): Promise<Category[]> => call("categories.list"),
+    create: (c: CategoryInput): Promise<Category> => call("categories.create", c),
+    update: (id: string, c: CategoryInput): Promise<Category> => call("categories.update", id, c),
+    delete: (id: string): Promise<{ success: boolean }> => call("categories.delete", id),
   },
   dashboard: {
-    stats: (): Promise<DashboardStats> => fetchJson("GET", "/api/dashboard/stats"),
+    stats: (): Promise<DashboardStats> => call("dashboard.stats"),
   },
   settings: {
-    backupCreate: (): Promise<BackupResult> => fetchJson("POST", "/api/settings/backup"),
-    backupList: (): Promise<BackupEntry[]> => fetchJson("GET", "/api/settings/backups"),
+    backupCreate: (): Promise<BackupResult> => {
+      if (!window.electronAPI?.settings?.backupCreate) {
+        return Promise.resolve({ success: false, error: "Backups not available" });
+      }
+      return window.electronAPI.settings.backupCreate();
+    },
+    backupList: (): Promise<BackupEntry[]> => {
+      if (!window.electronAPI?.settings?.backupList) {
+        return Promise.resolve([]);
+      }
+      return window.electronAPI.settings.backupList();
+    },
     backupDelete: (name: string): Promise<{ success: boolean; error?: string }> =>
-      fetchJson("DELETE", "/api/settings/backup", { name }),
+      window.electronAPI.settings.backupDelete(name),
     backupRestore: (name: string): Promise<{ success: boolean; error?: string }> =>
-      fetchJson("POST", "/api/settings/backup/restore", { name }),
-    getBackupDirectory: (): Promise<{ path: string }> => fetchJson("GET", "/api/settings/backup/directory"),
-    gdriveGetConfig: (): Promise<GDriveConfig> => fetchJson("GET", "/api/settings/gdrive"),
+      window.electronAPI.settings.backupRestore(name),
+    getBackupDirectory: (): Promise<{ path: string }> =>
+      window.electronAPI.settings.getBackupDirectory(),
+    gdriveGetConfig: (): Promise<GDriveConfig> =>
+      window.electronAPI.settings.gdriveGetConfig(),
     gdriveSaveConfig: (cfg: GDriveConfig): Promise<{ success: boolean }> =>
-      fetchJson("PUT", "/api/settings/gdrive", cfg),
+      window.electronAPI.settings.gdriveSaveConfig(cfg),
   },
   barcodes: {
-    list: (): Promise<BarcodeEntry[]> => fetchJson("GET", "/api/barcodes"),
-    create: (code: string): Promise<BarcodeEntry> => fetchJson("POST", "/api/barcodes", { code }),
-    delete: (id: string): Promise<{ success: boolean }> => fetchJson("DELETE", `/api/barcodes/${id}`),
+    list: (): Promise<BarcodeEntry[]> => call("barcodes.list"),
+    create: (code: string): Promise<BarcodeEntry> => call("barcodes.create", code),
+    delete: (id: string): Promise<{ success: boolean }> => call("barcodes.delete", id),
   },
 };
 

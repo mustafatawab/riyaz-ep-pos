@@ -519,7 +519,7 @@ export default function Products() {
       <div className="flex items-center justify-between mb-5">
         <div className="space-y-0.5">
           <h1 className="text-base font-semibold text-text-primary tracking-tight">Products</h1>
-          <p className="text-xs text-text-secondary">Manage your pharmacy inventory</p>
+          <p className="text-xs text-text-secondary">Manage your inventory</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => { setCatEditingId(null); setCatName(""); setCatSearch(""); setCatOpen(true); }}>

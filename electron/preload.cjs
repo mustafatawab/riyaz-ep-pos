@@ -2,6 +2,10 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("appConfig", ipcRenderer.sendSync("config:get-sync"));
 
+contextBridge.exposeInMainWorld("dbInvoke", (method, ...args) =>
+  ipcRenderer.invoke("db:invoke", method, args),
+);
+
 contextBridge.exposeInMainWorld("electronAPI", {
   printers: {
     list: () => ipcRenderer.invoke("printers:list"),

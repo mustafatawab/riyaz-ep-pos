@@ -6,7 +6,7 @@ import App from "./App";
 import "./globals.css";
 
 try {
-  if (localStorage.getItem("faraz_theme") === "dark") {
+  if (localStorage.getItem("riyaz_theme") === "dark") {
     document.documentElement.classList.add("dark");
   }
 } catch {}

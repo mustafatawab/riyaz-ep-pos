@@ -2,6 +2,7 @@ import { app, BrowserWindow } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
 import { registerHandlers } from "./ipc-handlers.js";
+import { registerDbHandlers } from "./db-ipc.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -14,7 +15,7 @@ function createWindow() {
     height: 900,
     minWidth: 1024,
     minHeight: 700,
-    title: "Faraz Pharmacy",
+    title: "Riyaz Enterprise",
     icon: path.join(__dirname, "..", "src", "asset", "image", "logo.png"),
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
@@ -37,6 +38,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  registerDbHandlers();
   registerHandlers();
   createWindow();
 
