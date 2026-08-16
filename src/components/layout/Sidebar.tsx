@@ -37,7 +37,7 @@ export default function Sidebar() {
     <aside
       className={cn(
         "h-full bg-sidebar-background flex flex-col shrink-0 transition-all duration-300 ease-out relative select-none",
-        collapsed ? "w-[60px]" : "w-[220px]"
+        collapsed ? "w-15" : "w-55"
       )}
     >
       <div className={cn(
@@ -46,7 +46,7 @@ export default function Sidebar() {
       )}>
         <div className="flex items-center justify-center rounded-lg h-7 px-1.5 bg-accent-subtle border border-gold/25 shrink-0 overflow-hidden">
           <span className="text-[10px] font-display font-bold text-accent tracking-tight whitespace-nowrap">
-            {collapsed ? "RE" : "Riyaz EP"}
+            {collapsed ? "POS" : "POS"}
           </span>
         </div>
         <AnimatePresence>
@@ -57,8 +57,8 @@ export default function Sidebar() {
               exit={{ opacity: 0, width: 0 }}
               className="min-w-0 overflow-hidden"
             >
-              <p className="text-xs font-display font-semibold text-sidebar-foreground truncate tracking-tight">Riyaz Enterprise</p>
-              <p className="text-[8px] text-sidebar-foreground/40 truncate tracking-widest uppercase">Management</p>
+              <p className="text-xs font-display font-semibold text-sidebar-foreground truncate tracking-tight">Point of Sale</p>
+              <p className="text-[8px] text-sidebar-foreground/40 truncate tracking-widest uppercase">System</p>
             </motion.div>
           )}
         </AnimatePresence>

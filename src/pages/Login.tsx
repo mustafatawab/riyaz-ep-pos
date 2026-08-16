@@ -165,8 +165,8 @@ export default function Login() {
       </div>
 
       <div className="hidden lg:flex flex-1 items-center justify-center bg-[#7F1D3A] relative overflow-hidden">
-        <div className="absolute inset-0 bg-white/[0.03] rounded-[100%] -translate-y-1/2 w-[600px] h-[600px] top-0 left-1/2 -translate-x-1/2" />
-        <div className="absolute inset-0 bg-black/[0.04] rounded-[100%] translate-y-1/3 w-[400px] h-[400px] bottom-0 right-0" />
+        <div className="absolute inset-0 bg-white/3 rounded-[100%] -translate-y-1/2 w-[600px] h-[600px] top-0 left-1/2 -translate-x-1/2" />
+        <div className="absolute inset-0 bg-black/4 rounded-[100%] translate-y-1/3 w-[400px] h-[400px] bottom-0 right-0" />
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
