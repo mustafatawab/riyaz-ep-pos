@@ -174,12 +174,13 @@ export default function Login() {
           className="relative z-10 text-center px-8"
         >
           <div className="mx-auto mb-6 rounded-xl bg-white/95 px-6 py-5 inline-flex items-center justify-center border border-[#C59D5F]/40">
-            <span className="text-2xl font-display font-bold text-[#7F1D3A] tracking-tight">Riyaz EP</span>
+            <span className="text-2xl font-display font-bold text-[#7F1D3A] tracking-tight">ERP</span>
           </div>
-          <h2 className="text-2xl font-display font-bold text-white tracking-tight">Riyaz Enterprise</h2>
+          <h2 className="text-2xl font-display font-bold text-white tracking-tight">Modern Point of Sale.</h2>
           <p className="text-sm text-white/70 mt-2 max-w-xs mx-auto leading-relaxed">
-            Complete business management solution
+            Complete business management solution & Point of Sale system for large and small businesses.
           </p>
+          
         </motion.div>
       </div>
 
