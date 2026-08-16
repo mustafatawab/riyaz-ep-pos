@@ -92,14 +92,11 @@ export default function Login() {
           className="w-full max-w-sm"
         >
           <div className="block lg:hidden mb-8">
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex flex-col justify-center items-center gap-3 mb-3">
               <div className="h-9 px-2.5 rounded-lg flex items-center justify-center bg-accent-subtle border border-gold/30">
-                <span className="text-sm font-display font-bold text-accent tracking-tight">Riyaz EP</span>
+                <span className="text-sm font-display font-semibold text-accent tracking-tight">Sign in to your account.</span>
               </div>
-              <div>
-                <h1 className="text-base font-display font-semibold text-text-primary tracking-tight">Riyaz Enterprise</h1>
-                <p className="text-[11px] text-text-secondary">Sign in to your account</p>
-              </div>
+             
             </div>
           </div>
 
@@ -186,11 +183,9 @@ export default function Login() {
         </motion.div>
       </div>
 
-      <Dialog open={recoveryOpen} onOpenChange={(v) => { if (!v) { setRecoveryOpen(false); setTimeout(() => { setRecoverySuccess(false); setRecoveryError(""); setRecoveryPhrase(""); setNewPassword(""); setConfirmPassword(""); }, 200); } }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Recover Password</DialogTitle>
-          </DialogHeader>
+      <Dialog  open={recoveryOpen} onOpenChange={(v) => { if (!v) { setRecoveryOpen(false); setTimeout(() => { setRecoverySuccess(false); setRecoveryError(""); setRecoveryPhrase(""); setNewPassword(""); setConfirmPassword(""); }, 200); } }}>
+        <DialogContent className="w-full p-5">
+          
           {recoverySuccess ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -205,6 +200,7 @@ export default function Login() {
             </motion.div>
           ) : (
             <form onSubmit={handleRecoverySubmit} className="space-y-3">
+              <p className="text-lg font-bold ">Recover Password</p>
               <p className="text-xs text-text-secondary">Enter your recovery key to reset your password.</p>
               <div className="space-y-1">
                 <Label htmlFor="recovery-phrase" className="text-xs">Recovery Key</Label>
