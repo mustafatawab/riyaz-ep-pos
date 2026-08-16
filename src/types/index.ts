@@ -258,3 +258,84 @@ export interface BarcodeEntry {
   product: { name: string; active: number } | null;
   createdAt: string;
 }
+
+export interface ZakatSettings {
+  id: string;
+  goldRate: number;
+  silverRate: number;
+  nisabBasis: "silver" | "gold" | "lowest";
+  inventoryValue: "retail" | "cost";
+  deductLiabilities: boolean;
+  zakatRate: number;
+  updatedAt: string;
+  nisabSilver: number;
+  nisabGold: number;
+  nisabAmount: number;
+}
+
+export interface ZakatSettingsInput {
+  goldRate?: number;
+  silverRate?: number;
+  nisabBasis?: "silver" | "gold" | "lowest";
+  inventoryValue?: "retail" | "cost";
+  deductLiabilities?: boolean;
+  zakatRate?: number;
+}
+
+export interface ZakatItem {
+  productId?: string;
+  name: string;
+  barcode?: string;
+  quantity?: number;
+  unitValue?: number;
+  value: number;
+  arrearId?: string;
+  customerId?: string;
+  customerName?: string;
+}
+
+export interface ZakatPreview {
+  inventoryBasis: "retail" | "cost";
+  inventoryItems: ZakatItem[];
+  inventoryValue: number;
+  receivables: ZakatItem[];
+  receivablesTotal: number;
+  settings: ZakatSettings;
+}
+
+export interface ZakatCalculation {
+  id: string;
+  snapshot_date: string;
+  hawl_start_date: string;
+  gold_rate: number;
+  silver_rate: number;
+  nisab_basis: string;
+  nisab_amount: number;
+  inventory_value: number;
+  receivables: number;
+  cash_in_hand: number;
+  other_receivables: number;
+  other_assets: number;
+  liabilities: number;
+  deductions_enabled: boolean;
+  gross_assets: number;
+  total_liabilities: number;
+  net_zakatable: number;
+  nisab_met: boolean;
+  zakat_due: number;
+  items: ZakatItem[];
+  created_at: string;
+}
+
+export interface ZakatInput {
+  snapshotDate: string;
+  hawlStartDate?: string;
+  inventoryValue: number;
+  receivables: number;
+  cashInHand: number;
+  otherReceivables?: number;
+  otherAssets?: number;
+  liabilities: number;
+  deductLiabilities?: boolean;
+  items: ZakatItem[];
+}

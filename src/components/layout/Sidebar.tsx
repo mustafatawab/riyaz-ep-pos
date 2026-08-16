@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, ShoppingCart, Package, Boxes, Users, CreditCard,
   Truck, Undo2, Wallet, BarChart3, Receipt, Barcode, Settings,
-  LogOut, PanelLeftClose,
+  LogOut, PanelLeftClose, HandCoins,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,6 +20,7 @@ const navItems = [
   { href: "/invoices", label: "Invoices", icon: Receipt },
   { href: "/arrears", label: "Arrears", icon: CreditCard },
   { href: "/returns", label: "Returns", icon: Undo2 },
+  { href: "/zakat", label: "Zakat", icon: HandCoins },
   { href: "/expenses", label: "Expenses", icon: Wallet },
   { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings },

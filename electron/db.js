@@ -202,6 +202,41 @@ function migrate() {
       FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
     );
 
+    CREATE TABLE IF NOT EXISTS zakat_settings (
+      id TEXT PRIMARY KEY,
+      gold_rate REAL NOT NULL DEFAULT 0,
+      silver_rate REAL NOT NULL DEFAULT 0,
+      nisab_basis TEXT NOT NULL DEFAULT 'silver',
+      inventory_value TEXT NOT NULL DEFAULT 'retail',
+      deduct_liabilities INTEGER NOT NULL DEFAULT 1,
+      zakat_rate REAL NOT NULL DEFAULT 0.025,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS zakat_calculations (
+      id TEXT PRIMARY KEY,
+      snapshot_date TEXT NOT NULL,
+      hawl_start_date TEXT NOT NULL DEFAULT '',
+      gold_rate REAL NOT NULL DEFAULT 0,
+      silver_rate REAL NOT NULL DEFAULT 0,
+      nisab_basis TEXT NOT NULL DEFAULT 'silver',
+      nisab_amount REAL NOT NULL DEFAULT 0,
+      inventory_value REAL NOT NULL DEFAULT 0,
+      receivables REAL NOT NULL DEFAULT 0,
+      cash_in_hand REAL NOT NULL DEFAULT 0,
+      other_receivables REAL NOT NULL DEFAULT 0,
+      other_assets REAL NOT NULL DEFAULT 0,
+      liabilities REAL NOT NULL DEFAULT 0,
+      deductions_enabled INTEGER NOT NULL DEFAULT 1,
+      gross_assets REAL NOT NULL DEFAULT 0,
+      total_liabilities REAL NOT NULL DEFAULT 0,
+      net_zakatable REAL NOT NULL DEFAULT 0,
+      nisab_met INTEGER NOT NULL DEFAULT 0,
+      zakat_due REAL NOT NULL DEFAULT 0,
+      items_json TEXT NOT NULL DEFAULT '[]',
+      created_at TEXT NOT NULL
+    );
+
     CREATE INDEX IF NOT EXISTS idx_sales_created ON sales(created_at);
     CREATE INDEX IF NOT EXISTS idx_sales_customer ON sales(customer_id);
     CREATE INDEX IF NOT EXISTS idx_sale_items_sale ON sale_items(sale_id);
@@ -211,6 +246,7 @@ function migrate() {
 
   ensureSalesInvoiceNumbers();
   ensureSuppliers();
+  ensureZakat();
 }
 
 function tableHasColumn(table, column) {
@@ -329,6 +365,15 @@ function ensureSuppliers() {
     SET supplier_id = COALESCE(NULLIF(supplier_id, ''), company_id, distributor_id)
     WHERE supplier_id IS NULL OR supplier_id = ''
   `);
+}
+
+function ensureZakat() {
+  const count = db.prepare("SELECT COUNT(*) AS c FROM zakat_settings").get().c;
+  if (count === 0) {
+    db.prepare(
+      "INSERT INTO zakat_settings (id, gold_rate, silver_rate, nisab_basis, inventory_value, deduct_liabilities, zakat_rate, updated_at) VALUES (?, 0, 0, 'silver', 'retail', 1, 0.025, ?)",
+    ).run("default", now());
+  }
 }
 
 function hashPassword(password) {
@@ -1194,6 +1239,186 @@ function dashboardStats() {
   };
 }
 
+/* ------------------------- zakat ------------------------- */
+
+const SILVER_NISAB_GRAMS = 612.36; // equivalent of 52.5 tola
+const GOLD_NISAB_GRAMS = 87.48; // equivalent of 7.5 tola
+const DEFAULT_ZAKAT_RATE = 0.025;
+
+function round2(n) {
+  return Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+}
+
+function getZakatSettings() {
+  const row = getDb().prepare("SELECT * FROM zakat_settings ORDER BY rowid LIMIT 1").get();
+  const s = row || {
+    id: "default",
+    gold_rate: 0,
+    silver_rate: 0,
+    nisab_basis: "silver",
+    inventory_value: "retail",
+    deduct_liabilities: 1,
+    zakat_rate: DEFAULT_ZAKAT_RATE,
+    updated_at: now(),
+  };
+  const nisabSilver = round2((s.silver_rate || 0) * SILVER_NISAB_GRAMS);
+  const nisabGold = round2((s.gold_rate || 0) * GOLD_NISAB_GRAMS);
+  let nisabAmount = 0;
+  if (s.nisab_basis === "gold") nisabAmount = nisabGold;
+  else if (s.nisab_basis === "lowest") {
+    nisabAmount = nisabGold && nisabSilver ? Math.min(nisabGold, nisabSilver) : nisabGold || nisabSilver;
+  } else nisabAmount = nisabSilver;
+  return {
+    id: s.id,
+    goldRate: s.gold_rate,
+    silverRate: s.silver_rate,
+    nisabBasis: s.nisab_basis,
+    inventoryValue: s.inventory_value,
+    deductLiabilities: !!s.deduct_liabilities,
+    zakatRate: s.zakat_rate,
+    updatedAt: s.updated_at,
+    nisabSilver,
+    nisabGold,
+    nisabAmount,
+  };
+}
+
+function saveZakatSettings(input) {
+  const s = getZakatSettings();
+  getDb()
+    .prepare(
+      `UPDATE zakat_settings
+       SET gold_rate = ?, silver_rate = ?, nisab_basis = ?, inventory_value = ?,
+           deduct_liabilities = ?, zakat_rate = ?, updated_at = ?
+       WHERE id = ?`,
+    )
+    .run(
+      input.goldRate ?? s.goldRate,
+      input.silverRate ?? s.silverRate,
+      input.nisabBasis || s.nisabBasis,
+      input.inventoryValue || s.inventoryValue,
+      input.deductLiabilities ?? s.deductLiabilities ? 1 : 0,
+      input.zakatRate ?? s.zakatRate,
+      now(),
+      s.id,
+    );
+  return getZakatSettings();
+}
+
+function zakatPreview(opts) {
+  const settings = getZakatSettings();
+  const basis = opts?.inventoryValue || settings.inventoryValue || "retail";
+  const products = getDb()
+    .prepare(
+      `SELECT id, name, barcode, stock_qty, sale_price, purchase_price
+       FROM products WHERE active = 1 AND stock_qty > 0
+       ORDER BY name COLLATE NOCASE ASC`,
+    )
+    .all();
+  const inventoryItems = products.map((p) => {
+    const unit = basis === "cost" ? p.purchase_price || 0 : p.sale_price || 0;
+    return {
+      productId: p.id,
+      name: p.name,
+      barcode: p.barcode,
+      quantity: p.stock_qty,
+      unitValue: unit,
+      value: round2(p.stock_qty * unit),
+    };
+  });
+  const inventoryValue = round2(inventoryItems.reduce((s, i) => s + i.value, 0));
+  const receivableRows = getDb()
+    .prepare(
+      `SELECT a.id, a.customer_id, c.name AS customer_name, a.balance_due
+       FROM arrears a LEFT JOIN customers c ON c.id = a.customer_id
+       WHERE a.status = 'pending'
+       ORDER BY a.created_at DESC`,
+    )
+    .all();
+  const receivables = receivableRows.map((r) => ({
+    arrearId: r.id,
+    customerId: r.customer_id,
+    customerName: r.customer_name || "—",
+    value: round2(r.balance_due || 0),
+  }));
+  const receivablesTotal = round2(receivables.reduce((s, i) => s + i.value, 0));
+  return { inventoryBasis: basis, inventoryItems, inventoryValue, receivables, receivablesTotal, settings };
+}
+
+function getZakatCalculation(id) {
+  const row = getDb().prepare("SELECT * FROM zakat_calculations WHERE id = ?").get(id);
+  if (!row) return null;
+  let items = [];
+  try {
+    items = JSON.parse(row.items_json || "[]");
+  } catch (_) {}
+  return { ...row, nisab_met: !!row.nisab_met, deductions_enabled: !!row.deductions_enabled, items };
+}
+
+function calculateZakat(input) {
+  const settings = getZakatSettings();
+  const inventoryValue = round2(Number(input.inventoryValue) || 0);
+  const receivables = round2(Number(input.receivables) || 0);
+  const cashInHand = round2(Number(input.cashInHand) || 0);
+  const otherReceivables = round2(Number(input.otherReceivables) || 0);
+  const otherAssets = round2(Number(input.otherAssets) || 0);
+  const liabilities = round2(Number(input.liabilities) || 0);
+  const deductLiabilities = input.deductLiabilities ?? settings.deductLiabilities;
+  const grossAssets = round2(inventoryValue + receivables + cashInHand + otherReceivables + otherAssets);
+  const totalLiabilities = deductLiabilities ? liabilities : 0;
+  const netZakatable = round2(Math.max(0, grossAssets - totalLiabilities));
+  const nisabAmount = settings.nisabAmount || 0;
+  const nisabMet = nisabAmount > 0 && netZakatable >= nisabAmount;
+  const zakatDue = nisabMet ? round2(netZakatable * (settings.zakatRate || DEFAULT_ZAKAT_RATE)) : 0;
+  const createdAt = now();
+  const id = uid();
+  getDb()
+    .prepare(
+      `INSERT INTO zakat_calculations
+       (id, snapshot_date, hawl_start_date, gold_rate, silver_rate, nisab_basis, nisab_amount,
+        inventory_value, receivables, cash_in_hand, other_receivables, other_assets,
+        liabilities, deductions_enabled, gross_assets, total_liabilities, net_zakatable,
+        nisab_met, zakat_due, items_json, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      id,
+      input.snapshotDate,
+      input.hawlStartDate || "",
+      settings.goldRate,
+      settings.silverRate,
+      settings.nisabBasis,
+      settings.nisabAmount || 0,
+      inventoryValue,
+      receivables,
+      cashInHand,
+      otherReceivables,
+      otherAssets,
+      liabilities,
+      deductLiabilities ? 1 : 0,
+      grossAssets,
+      totalLiabilities,
+      netZakatable,
+      nisabMet ? 1 : 0,
+      zakatDue,
+      JSON.stringify(input.items || []),
+      createdAt,
+    );
+  return getZakatCalculation(id);
+}
+
+function listZakatCalculations() {
+  return getDb()
+    .prepare("SELECT * FROM zakat_calculations ORDER BY created_at DESC")
+    .all()
+    .map((r) => ({ ...r, nisab_met: !!r.nisab_met, deductions_enabled: !!r.deductions_enabled }));
+}
+
+function deleteZakatCalculation(id) {
+  getDb().prepare("DELETE FROM zakat_calculations WHERE id = ?").run(id);
+  return { success: true };
+}
+
 /* ------------------------- api map ------------------------- */
 
 const dbApi = {
@@ -1274,6 +1499,15 @@ const dbApi = {
     list: listBarcodes,
     create: createBarcode,
     delete: deleteBarcode,
+  },
+  zakat: {
+    settings: getZakatSettings,
+    saveSettings: saveZakatSettings,
+    preview: zakatPreview,
+    calculate: calculateZakat,
+    list: listZakatCalculations,
+    getById: getZakatCalculation,
+    delete: deleteZakatCalculation,
   },
 };
 

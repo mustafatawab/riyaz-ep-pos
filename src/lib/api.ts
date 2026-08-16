@@ -3,6 +3,7 @@ import type {
   Arrear, ArrearInput, StockPurchase, StockInput, Supplier, SupplierInput,
   ReturnEntry, ReturnInput, Expense, ExpenseInput,
   Category, CategoryInput, DashboardStats, BarcodeEntry,
+  ZakatSettings, ZakatSettingsInput, ZakatPreview, ZakatCalculation, ZakatInput,
 } from "@/types";
 import type { BackupResult, BackupEntry, GDriveConfig } from "@/types/electron";
 
@@ -128,6 +129,16 @@ const api = {
     list: (): Promise<BarcodeEntry[]> => call("barcodes.list"),
     create: (code: string): Promise<BarcodeEntry> => call("barcodes.create", code),
     delete: (id: string): Promise<{ success: boolean }> => call("barcodes.delete", id),
+  },
+  zakat: {
+    settings: (): Promise<ZakatSettings> => call("zakat.settings"),
+    saveSettings: (s: ZakatSettingsInput): Promise<ZakatSettings> => call("zakat.saveSettings", s),
+    preview: (opts?: { inventoryValue?: "retail" | "cost" }): Promise<ZakatPreview> =>
+      call("zakat.preview", opts),
+    calculate: (input: ZakatInput): Promise<ZakatCalculation> => call("zakat.calculate", input),
+    list: (): Promise<ZakatCalculation[]> => call("zakat.list"),
+    getById: (id: string): Promise<ZakatCalculation | null> => call("zakat.getById", id),
+    delete: (id: string): Promise<{ success: boolean }> => call("zakat.delete", id),
   },
 };
 
